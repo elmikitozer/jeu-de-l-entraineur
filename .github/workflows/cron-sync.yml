@@ -1,0 +1,72 @@
+name: Sync Match Stats
+
+on:
+  schedule:
+    - cron: '* * * * *'     # Toutes les minutes
+  workflow_dispatch:         # Déclenchement manuel (pour tests)
+
+jobs:
+  check-and-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Vérifier si un match nécessite une sync
+        id: check
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          PLUS_3H=$(date -u -d "now + 3 hours" +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Match en cours ?
+          LIVE=$(curl -sf \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/matches?status=eq.live&select=id&limit=1" \
+            | jq 'length // 0')
+
+          # Match programmé dans les 3 prochaines heures ?
+          UPCOMING=$(curl -sf \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/matches?status=eq.scheduled&date=gte.${NOW}&date=lte.${PLUS_3H}&select=id&limit=1" \
+            | jq 'length // 0')
+
+          # Match finished nécessitant un post-check (sync_attempts < 6) ?
+          POST_CHECK=$(curl -sf \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/matches?status=eq.finished&sync_attempts=lt.6&select=id&limit=1" \
+            | jq 'length // 0')
+
+          echo "live=${LIVE}, upcoming=${UPCOMING}, post_check=${POST_CHECK}"
+
+          if [ "$LIVE" -gt 0 ] || [ "$UPCOMING" -gt 0 ] || [ "$POST_CHECK" -gt 0 ]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Déclencher la sync
+        if: steps.check.outputs.needed == 'true'
+        env:
+          VERCEL_PROJECT_URL: ${{ secrets.VERCEL_PROJECT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          RESPONSE=$(curl -sf \
+            -X GET \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://${VERCEL_PROJECT_URL}/api/cron/sync-stats" \
+            -w "\n%{http_code}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+
+          echo "HTTP $HTTP_CODE : $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Erreur sync : HTTP $HTTP_CODE"
+            exit 1
+          fi

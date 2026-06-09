@@ -1,162 +1,121 @@
-# Déploiement sur Vercel
+# Déploiement sur Vercel — Jeu de l'Entraîneur
 
 ## Prérequis
 
-- Compte Vercel (gratuit pour ce type de projet)
-- Repo GitHub avec le code (branche `main`)
-- Fichier `.env.local` configuré localement
+- Compte Vercel (gratuit)
+- Compte GitHub avec le repo pushé
+- `.env.local` configuré localement et build qui passe (`npx next build`)
 
 ---
 
-## Étape 1 — Pousser sur GitHub
-
-Si ce n'est pas déjà fait :
+## Étape 1 — Push sur GitHub
 
 ```bash
 git init
 git add .
-git commit -m "chore: init projet jeu de l'entraîneur"
+git commit -m "feat: initial deploy Jeu de l'Entraîneur"
 git branch -M main
-git remote add origin https://github.com/TON_USERNAME/jeu-entraineur.git
+git remote add origin https://github.com/elmikitozer/jeu-de-lentraineur.git
 git push -u origin main
 ```
 
 ---
 
-## Étape 2 — Importer le projet dans Vercel
+## Étape 2 — Import sur vercel.com
 
-1. Aller sur https://vercel.com/new
-2. Cliquer **"Import Git Repository"**
-3. Sélectionner le repo `jeu-entraineur`
-4. Framework : **Next.js** (détecté automatiquement)
-5. Root directory : `.` (racine)
-6. Ne pas toucher aux Build / Output settings (Next.js par défaut)
-7. **Ne pas déployer encore** → configurer d'abord les variables d'environnement
+1. Aller sur **vercel.com/new**
+2. Cliquer **Import Git Repository** → sélectionner `jeu-de-lentraineur`
+3. Framework : **Next.js** (auto-détecté)
+4. Root Directory : `./`
+5. Build Command : `next build` (défaut)
+6. **Ne pas déployer encore** — configurer d'abord les variables d'environnement
 
 ---
 
 ## Étape 3 — Variables d'environnement
 
-Dans **Settings → Environment Variables** du projet Vercel, ajouter les variables suivantes.
+Dans **Settings → Environment Variables** du projet Vercel :
 
-| Variable | Valeur | Environnements |
+| Variable | Description | Environnements |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` | Production, Preview, Development |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` (anon key) | Production, Preview, Development |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (service_role key) | Production, Preview, Development |
-| `RAPIDAPI_KEY` | clé API-Football | Production, Preview, Development |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL du projet Supabase | Production, Preview, Development |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé publique Supabase | Production, Preview, Development |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service Supabase (⚠️ jamais exposée client) | Production, Preview, Development |
+| `RAPIDAPI_KEY` | Clé API-Football | Production, Preview, Development |
 | `RAPIDAPI_HOST` | `v3.football.api-sports.io` | Production, Preview, Development |
-| `ADMIN_PASSWORD` | mot de passe admin | Production uniquement |
-| `CRON_SECRET` | token cron aléatoire (`openssl rand -hex 32`) | Production uniquement |
-| `NEXT_PUBLIC_APP_URL` | `https://ton-domaine.vercel.app` | Production |
+| `ADMIN_PASSWORD` | Mot de passe interface `/admin` | Production uniquement |
+| `CRON_SECRET` | Secret cron (`openssl rand -hex 32`) | Production uniquement |
 
-> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` et `ADMIN_PASSWORD` ne doivent JAMAIS être exposés côté client.
-> Vérifier qu'aucune variable `NEXT_PUBLIC_` ne contient ces valeurs sensibles.
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` et `ADMIN_PASSWORD` ne doivent **jamais** avoir le préfixe `NEXT_PUBLIC_`.
 
 ---
 
 ## Étape 4 — Premier déploiement
 
-1. Cliquer **Deploy**
-2. Attendre ~2 min (build Next.js)
-3. Vérifier l'URL de preview : `https://jeu-entraineur-xxx.vercel.app`
-4. Tester les pages : `/`, `/calendrier`, `/stats`, `/team/[id]`
+Cliquer **Deploy** → attendre ~2 min → tester :
+- `/` — classement
+- `/calendrier` — matchs groupés par jour
+- `/stats` — cagnotte
+- `/admin` — redirige vers `/admin/login` si non authentifié
 
 ---
 
 ## Étape 5 — Cron job (sync des scores)
 
-Le cron endpoint `/api/cron/sync-scores` doit être appelé automatiquement.
-
-### Option A — Vercel Cron (recommandé)
-
-Ajouter dans `vercel.json` (à créer à la racine) :
+Le fichier `vercel.json` est déjà configuré :
 
 ```json
 {
   "crons": [
     {
-      "path": "/api/cron/sync-scores",
-      "schedule": "*/5 * * * *"
+      "path": "/api/cron/sync-stats",
+      "schedule": "* * * * *"
     }
   ]
 }
 ```
 
-Le header `Authorization: Bearer {CRON_SECRET}` est ajouté automatiquement par Vercel.
+Vercel ajoute automatiquement le header `Authorization: Bearer {CRON_SECRET}` à chaque appel.
 
-> Le plan Hobby Vercel inclut 2 cron jobs (minimum interval : 1 minute).
-
-### Option B — GitHub Actions
-
-Créer `.github/workflows/sync-scores.yml` :
-
-```yaml
-name: Sync Scores
-on:
-  schedule:
-    - cron: '*/5 * * * *'
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Call sync endpoint
-        run: |
-          curl -X POST https://ton-domaine.vercel.app/api/cron/sync-scores \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-```
-
-Ajouter `CRON_SECRET` dans **GitHub → Settings → Secrets → Actions**.
+> Plan Hobby Vercel : 2 cron jobs max, intervalle minimum 1 minute.
 
 ---
 
-## Étape 6 — Domaine personnalisé (optionnel)
+## Étape 6 — GitHub Actions secrets
 
-1. Vercel → Project → **Domains**
-2. Ajouter le domaine (ex: `cdm2026.ton-domaine.fr`)
-3. Configurer le DNS chez ton registrar :
-   - `CNAME` : `cname.vercel-dns.com` (pour sous-domaine)
-   - ou `A` : `76.76.21.21` (pour domaine racine)
-4. Mettre à jour `NEXT_PUBLIC_APP_URL` avec le vrai domaine
-
----
-
-## Variables GitHub Actions (pour CI)
-
-Si tu veux un pipeline CI/CD complet, ajouter dans **GitHub → Settings → Secrets** :
+Pour que le workflow `.github/workflows/cron-sync.yml` fonctionne, ajouter dans **GitHub → Settings → Secrets and variables → Actions** :
 
 | Secret | Valeur |
 |---|---|
-| `VERCEL_TOKEN` | Token Vercel (Account → Tokens) |
-| `VERCEL_ORG_ID` | Org ID (visible dans `.vercel/project.json` après `vercel link`) |
-| `VERCEL_PROJECT_ID` | Project ID (idem) |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase |
 | `CRON_SECRET` | Même valeur que dans Vercel |
+| `VERCEL_PROJECT_URL` | Domaine Vercel après deploy (ex: `jeu-de-lentraineur.vercel.app`) |
+
+Le workflow GitHub Actions sert de **fallback** : il ping l'endpoint seulement s'il y a un match live ou dans les 3 prochaines heures.
 
 ---
 
 ## Vérifications post-déploiement
 
 - [ ] Page `/` charge le classement (données Supabase)
-- [ ] Page `/calendrier` affiche les matchs groupés par phase
+- [ ] Page `/calendrier` affiche les matchs groupés par jour
 - [ ] Page `/stats` affiche la cagnotte
-- [ ] Mode sombre fonctionne sans flash au rechargement
-- [ ] Menu mobile fonctionne sur iPhone/Android
-- [ ] `/admin` redirige vers `/admin/login` si non authentifié
-- [ ] Cron job tourne toutes les 5 min (vérifier les logs Vercel)
+- [ ] Drapeaux s'affichent (flagcdn.com autorisé dans `next.config.mjs`)
+- [ ] Mode sombre fonctionne sans flash
+- [ ] Menu mobile fonctionne sur mobile
+- [ ] `/admin` redirige vers login si non authentifié
+- [ ] Cron visible dans Vercel → Project → Cron Jobs
 
 ---
 
 ## Dépannage fréquent
 
-**Build échoue avec TypeScript errors**
-→ Lancer `npx tsc --noEmit` localement avant de push.
-
-**Données vides sur Vercel mais OK en local**
-→ Vérifier les variables d'environnement dans Vercel Settings.
-→ Les variables sans `NEXT_PUBLIC_` ne sont disponibles qu'au runtime serveur, pas au build.
-
-**Calendrier vide**
-→ `SUPABASE_SERVICE_ROLE_KEY` manquante ou incorrecte côté Vercel.
-
-**Admin inaccessible**
-→ `ADMIN_PASSWORD` non définie pour l'environnement Production.
+| Symptôme | Cause probable |
+|---|---|
+| Build échoue | Lancer `npx tsc --noEmit` localement avant de push |
+| Données vides | Vérifier les variables d'environnement dans Vercel Settings |
+| Calendrier vide | `SUPABASE_SERVICE_ROLE_KEY` manquante ou incorrecte |
+| Admin inaccessible | `ADMIN_PASSWORD` non définie pour l'environnement Production |
+| Drapeaux manquants | `flagcdn.com` absent de `images.domains` dans `next.config.mjs` |
+| Cron ne tourne pas | `CRON_SECRET` absente ou différente entre Vercel et GitHub Secrets |

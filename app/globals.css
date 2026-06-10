@@ -55,7 +55,7 @@
 
 /* ── Tokens nav ────────────────────────────────────────────────────── */
 :root {
-  --c-nav-bg: transparent;
+  --c-nav-bg: rgba(0, 140, 70, 0.92);
   --c-nav-text: rgba(255, 255, 255, 0.85);
   --c-nav-text-strong: #ffffff;
   --c-nav-border: rgba(255, 255, 255, 0.2);

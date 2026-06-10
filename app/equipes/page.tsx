@@ -172,7 +172,6 @@ function ParticipantCard({ participant }: { participant: ParticipantOverview }) 
             >
               {rankLabel(rank)}
             </span>
-            <span className="text-[10.5px] font-semibold font-body text-sub">4‑3‑3</span>
           </div>
         </div>
         <div className="text-right flex-shrink-0">

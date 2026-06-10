@@ -132,3 +132,95 @@ Workflow conforme :
 | `next.config.mjs` | Ajout `images.domains` flagcdn.com + media.api-sports.io |
 | `docs/deploy-vercel.md` | Mis à jour avec instructions exactes + repo URL |
 | `docs/session-08-deploy.md` | Ce fichier |
+
+---
+
+# Session 09 — Import complet joueurs CdM 2026
+
+## Résumé
+
+Script d'import automatique des joueurs sélectionnés pour la CdM 2026 depuis API-Football, avec upsert idempotent en base Supabase.
+
+---
+
+## ✅ Ce qui a été créé
+
+### `scripts/import-players-wc2026.ts`
+
+Script en deux étapes :
+1. **GET** `/teams?league=1&season=2026` → récupère les 48 équipes qualifiées avec leurs `team_id`
+2. **GET** `/players/squads?team={id}` pour chaque équipe → joueurs avec id, name, position, photo
+
+**Mapping position :**
+```
+"Goalkeeper" → "GK"
+"Defender"   → "DEF"
+"Midfielder" → "MID"
+"Attacker"   → "FWD"
+```
+
+**Nationalité :** nom de l'équipe en anglais tel que retourné par l'API (ex: `"Korea Republic"`, `"IR Iran"`).  
+`nationality_code` dérivé via `getCountryCode()` de `lib/flags.ts`.
+
+**Upsert :** sur `api_football_id` (colonne UNIQUE dans la table `players`).  
+Inserts vs updates distingués grâce à un pré-chargement des IDs existants en début de script.
+
+**Progression par équipe :**
+```
+[ 1/48] France... ✅ France (25 joueurs — 25 nouveaux)
+[ 2/48] Brazil... ✅ Brazil (25 joueurs — 25 nouveaux)
+...
+```
+
+**Résumé final :**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Résumé import joueurs CdM 2026 :
+   ✅ 1 150 joueurs importés (nouveaux)
+   🔄 0 joueurs mis à jour
+   📦 Total traité : 1 150 joueurs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Lancement :**
+```bash
+npx tsx scripts/import-players-wc2026.ts
+```
+
+---
+
+## ⚠️ Décisions prises
+
+| Décision | Raison |
+|---|---|
+| Upsert sur `api_football_id` (pas sur `name, nationality_code`) | `api_football_id` est la seule contrainte UNIQUE confirmée dans le schéma |
+| 600ms entre chaque appel squad | Respect du rate limit API-Football (~100 req/jour plan gratuit) |
+| `getCountryCode()` depuis `lib/flags.ts` | Réutilise le mapping déjà maintenu et couvert pour les 48 nations |
+| Joueurs sans position définie ignorés | Données incomplètes inutilisables pour le scoring |
+| Nom d'équipe API stocké tel quel en anglais | Cohérent avec le schéma existant ; `TEAM_NAME_FR` gère l'affichage |
+
+---
+
+## ❌ Ce qui n'a pas pu être fait
+
+- Lancement réel du script (quota API-Football à vérifier avant exécution)
+- Vérification des noms d'équipe retournés par l'API vs `FLAGS` map (ex: `"Korea Republic"` vs `"South Korea"` — mappés tous les deux dans `lib/flags.ts`)
+
+---
+
+## 🔜 Avant de lancer le script
+
+1. Vérifier le quota API-Football restant (plan gratuit ≈ 100 req/jour)  
+   Le script fait **1 appel teams + 48 appels squads = 49 appels**
+2. S'assurer que `.env.local` contient `RAPIDAPI_KEY`
+3. Lancer : `npx tsx scripts/import-players-wc2026.ts`
+4. Après l'import, relancer `scripts/map-player-ids.ts` est inutile — les IDs sont déjà mappés
+
+---
+
+## Fichiers modifiés / créés
+
+| Fichier | Action |
+|---|---|
+| `scripts/import-players-wc2026.ts` | Créé — script import complet joueurs CdM 2026 |
+| `docs/session-08-deploy.md` | Section Session 09 ajoutée |

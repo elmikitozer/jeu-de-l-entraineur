@@ -19,11 +19,10 @@ const POSITION_LABEL: Record<Position, string> = {
   FWD: 'attaquant / milieu',
 }
 
-// Pour les slots MID/FWD : tout joueur non-GK non-DEF est accepté
+// Seul le slot GK est strict — tout joueur de champ peut aller dans n'importe quel slot de champ
 function positionAllowed(playerPos: string | null | undefined, slotPos: Position): boolean {
   if (slotPos === 'GK') return playerPos === 'GK'
-  if (slotPos === 'DEF') return playerPos === 'DEF'
-  return playerPos !== 'GK' && playerPos !== 'DEF'
+  return playerPos !== 'GK'
 }
 
 function matchesSearch(playerName: string, query: string): boolean {

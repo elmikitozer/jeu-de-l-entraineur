@@ -125,17 +125,15 @@ export async function POST(request: NextRequest) {
 
   const playerMap = new Map((playersData as Player[]).map((p) => [p.id, p]))
 
-  // ── Validation position × slot (MID/FWD interchangeables) ───────────
+  // ── Validation position × slot (seul GK est strict) ─────────────────
   const posErrors: string[] = []
   for (const { slot, player_id } of slots) {
     const player = playerMap.get(player_id)
     if (!player) continue
     const expected = SLOT_POSITION[slot]
-    const slotIsOutfield = expected === 'MID' || expected === 'FWD'
-    const playerIsOutfield = player.position === 'MID' || player.position === 'FWD'
-    const valid = slotIsOutfield ? playerIsOutfield : player.position === expected
+    const valid = expected === 'GK' ? player.position === 'GK' : player.position !== 'GK'
     if (!valid) {
-      posErrors.push(`Slot ${slot} attend un ${expected}, reçu ${player.position} (${player.name})`)
+      posErrors.push(`Slot ${slot} : gardien attendu / reçu, incompatible (${player.name})`)
     }
   }
   if (posErrors.length > 0) {

@@ -9,7 +9,7 @@ export const revalidate = 60
 export default async function StatsPage() {
   const stats = await getGlobalStats()
 
-  const { totalPrize, prizeFirst, prizeSecond, prizeThird, topScorers, topAssists, mostRentable, mostRegular, totalParticipants } = stats
+  const { totalPrize, prizeFirst, topScorers, topAssists, mostRentable, mostRegular, totalParticipants } = stats
 
   const empty = totalParticipants === 0
 
@@ -46,26 +46,15 @@ export default async function StatsPage() {
 
             <div className="h-1 rounded-full" style={{ background: 'linear-gradient(90deg, var(--c-green), var(--c-lime))' }} />
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              {[
-                { label: '🥇 1ᵉʳ prix', amount: prizeFirst, pct: 60, color: 'var(--c-podium1)' },
-                { label: '🥈 2ᵉ prix', amount: prizeSecond, pct: 30, color: 'var(--c-podium2)' },
-                { label: '🥉 3ᵉ prix', amount: prizeThird, pct: 10, color: 'var(--c-podium3)' },
-              ].map(({ label, amount, pct, color }) => (
-                <div key={label} className="flex-1 flex flex-col gap-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-[13px] font-semibold font-body text-ink">{label}</span>
-                    <span className="font-display font-bold italic text-[26px] text-ink">{amount} €</span>
-                  </div>
-                  <div className="h-2 bg-line rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: color }}
-                    />
-                  </div>
-                  <span className="text-[11px] font-body text-sub text-right">{pct}%</span>
-                </div>
-              ))}
+            <div className="mt-6 flex flex-col gap-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[13px] font-semibold font-body text-ink">🥇 1ᵉʳ prix</span>
+                <span className="font-display font-bold italic text-[26px] text-ink">{prizeFirst} €</span>
+              </div>
+              <div className="h-2 bg-line rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: '100%', background: 'var(--c-podium1)' }} />
+              </div>
+              <span className="text-[11px] font-body text-sub text-right">100%</span>
             </div>
           </div>
 

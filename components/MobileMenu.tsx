@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: '/equipes', label: 'Équipes' },
   { href: '/stats', label: 'Stats' },
   { href: '/calendrier', label: 'Calendrier' },
+  { href: '/regles', label: 'Règles' },
 ]
 
 export default function MobileMenu() {

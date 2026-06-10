@@ -504,9 +504,9 @@ export async function getGlobalStats(): Promise<GlobalStats> {
   return {
     totalParticipants,
     totalPrize,
-    prizeFirst: Math.round(totalPrize * 0.6),
-    prizeSecond: Math.round(totalPrize * 0.3),
-    prizeThird: Math.round(totalPrize * 0.1),
+    prizeFirst: totalPrize,
+    prizeSecond: 0,
+    prizeThird: 0,
     topScorers,
     topAssists,
     mostRentable,

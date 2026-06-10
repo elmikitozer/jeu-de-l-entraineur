@@ -58,6 +58,20 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--c-line); border-radius: 3px; }
 
+/* ── Podium dark mode gradients ────────────────────────────────────────────── */
+.dark [data-podium="1"] {
+  background: linear-gradient(170deg, #157F45 0%, #0D4F2B 100%) !important;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.dark [data-podium="2"] {
+  background: linear-gradient(170deg, #3A5FCC 0%, #1E3580 100%) !important;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.dark [data-podium="3"] {
+  background: linear-gradient(170deg, #C53B49 0%, #7E252F 100%) !important;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
 /* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes menu-open {
   from { max-height: 0;     opacity: 0; }

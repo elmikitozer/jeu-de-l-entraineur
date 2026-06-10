@@ -61,7 +61,12 @@ export default function MatchCard({ match, index }: Props) {
       </div>
 
       {match.venue && (
-        <div className="text-[10.5px] text-sub text-center truncate">{match.venue}</div>
+        <div
+          className="text-[11px] md:text-[12px] text-sub text-center line-clamp-2 break-words"
+          title={match.venue}
+        >
+          {match.venue}
+        </div>
       )}
     </div>
   )

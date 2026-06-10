@@ -30,6 +30,7 @@ export const metadata: Metadata = {
 
 const NAV_LINKS = [
   { href: '/', label: 'Classement' },
+  { href: '/equipes', label: 'Équipes' },
   { href: '/stats', label: 'Stats' },
   { href: '/calendrier', label: 'Calendrier' },
 ];

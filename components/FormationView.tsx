@@ -12,24 +12,20 @@ export default function FormationView({ lines }: Props) {
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden border border-line flex flex-col justify-between"
+      className="relative rounded-2xl overflow-hidden border border-line flex flex-col justify-between min-h-[460px] md:min-h-[680px]"
       style={{
         background: 'repeating-linear-gradient(180deg, var(--pitch-a) 0px 90px, var(--pitch-b) 90px 180px)',
-        padding: '44px 30px 36px',
-        minHeight: 680,
+        padding: '28px 16px 24px',
       }}
     >
-      {/* Marquages terrain */}
+      {/* ── Marquages terrain ── */}
       <div
         className="absolute pointer-events-none rounded-lg"
         style={{ inset: 18, border: '2px solid var(--pitch-line)' }}
       />
       <div
         className="absolute pointer-events-none"
-        style={{
-          left: 18, right: 18, top: '50%',
-          height: 2, background: 'var(--pitch-line)',
-        }}
+        style={{ left: 18, right: 18, top: '50%', height: 2, background: 'var(--pitch-line)' }}
       />
       <div
         className="absolute pointer-events-none rounded-full"
@@ -40,7 +36,7 @@ export default function FormationView({ lines }: Props) {
           transform: 'translate(-50%, -50%)',
         }}
       />
-      {/* Surface de réparation haute */}
+      {/* Surface haute */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -51,7 +47,7 @@ export default function FormationView({ lines }: Props) {
           transform: 'translateX(-50%)',
         }}
       />
-      {/* Surface de réparation basse */}
+      {/* Surface basse */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -63,20 +59,21 @@ export default function FormationView({ lines }: Props) {
         }}
       />
 
-      {/* Lignes de joueurs */}
+      {/* ── Lignes de joueurs ── */}
       {sortedLines.map((line) => (
         <div
           key={line.label}
           className="flex justify-evenly relative z-10"
           style={{
-            padding: `0 ${line.players.length === 4 ? 0 : 40}px`,
+            padding: `0 ${line.players.length === 4 ? 0 : 20}px`,
           }}
         >
           {line.players.map((player) => (
             <PitchPlayer
               key={player.id}
               name={player.name}
-              nationalityCode={player.nationality_code}
+              nationality={player.nationality}
+              photoUrl={player.photo_url}
               points={player.points}
               isLive={player.isLive}
             />

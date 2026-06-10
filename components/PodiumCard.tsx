@@ -19,11 +19,6 @@ const PODIUM_BG_LIGHT: Record<number, string> = {
   3: 'var(--c-podium3)',
 }
 
-const PODIUM_GRAD_DARK: Record<number, string> = {
-  1: 'linear-gradient(170deg, #157F45 0%, #0D4F2B 100%)',
-  2: 'linear-gradient(170deg, #3A5FCC 0%, #1E3580 100%)',
-  3: 'linear-gradient(170deg, #C53B49 0%, #7E252F 100%)',
-}
 
 export default function PodiumCard({ entry, place }: Props) {
   const isFirst = place === 1
@@ -33,23 +28,15 @@ export default function PodiumCard({ entry, place }: Props) {
 
   return (
     <div
+      data-podium={place}
       className="relative overflow-hidden rounded-2xl flex flex-col gap-3 text-white"
       style={{
         flex: isFirst ? '1.2' : '1',
         marginTop: isFirst ? 0 : 28,
         padding: isFirst ? '30px 30px 26px' : '24px 26px 22px',
-        // Background handled via inline style so CSS vars work with dark/light
         background: PODIUM_BG_LIGHT[place],
       }}
     >
-      {/* Dark mode gradient overlay */}
-      <style>{`
-        html.dark [data-podium="${place}"] {
-          background: ${PODIUM_GRAD_DARK[place]} !important;
-          border: 1px solid rgba(255,255,255,0.14);
-        }
-      `}</style>
-      <div data-podium={place} className="absolute inset-0 rounded-2xl pointer-events-none" style={{ background: 'inherit' }} />
 
       {/* Ghost number */}
       <div

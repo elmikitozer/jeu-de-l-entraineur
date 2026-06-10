@@ -328,6 +328,82 @@ export async function getAllMatches(): Promise<Match[]> {
   return (data ?? []) as unknown as Match[]
 }
 
+// ── getAllParticipantsWithTeams ───────────────────────────────────────────────
+
+export interface SlotEntry {
+  slot: number
+  player: {
+    id: string
+    name: string
+    nationality: string
+    nationality_code: string
+    position: string
+  } | null
+  points: number
+}
+
+export interface ParticipantOverview {
+  id: string
+  name: string
+  total_points: number
+  rank: number
+  slots: SlotEntry[]
+}
+
+export async function getAllParticipantsWithTeams(): Promise<ParticipantOverview[]> {
+  const supabase = getClient()
+
+  const [
+    { data: participantRows },
+    { data: teamRows },
+    { data: pointsLogs },
+  ] = await Promise.all([
+    supabase
+      .from('participants')
+      .select('id, name, total_points')
+      .order('total_points', { ascending: false }),
+    supabase
+      .from('teams')
+      .select('participant_id, slot, players(id, name, nationality, nationality_code, position)'),
+    supabase
+      .from('points_log')
+      .select('player_id, total_points'),
+  ])
+
+  // Cumul des points par joueur (toutes équipes confondues — même joueur = mêmes points)
+  const playerPoints = new Map<string, number>()
+  for (const log of pointsLogs ?? []) {
+    const pid = log.player_id as string
+    playerPoints.set(pid, (playerPoints.get(pid) ?? 0) + ((log.total_points as number) || 0))
+  }
+
+  // Regroupement par participant
+  type RawTeamRow = {
+    participant_id: string
+    slot: number
+    players: { id: string; name: string; nationality: string; nationality_code: string; position: string } | null
+  }
+  const teamsByParticipant = new Map<string, RawTeamRow[]>()
+  for (const row of (teamRows ?? []) as unknown as RawTeamRow[]) {
+    if (!teamsByParticipant.has(row.participant_id)) teamsByParticipant.set(row.participant_id, [])
+    teamsByParticipant.get(row.participant_id)!.push(row)
+  }
+
+  return (participantRows ?? []).map((p, i) => ({
+    id: p.id as string,
+    name: p.name as string,
+    total_points: (p.total_points as number) || 0,
+    rank: i + 1,
+    slots: (teamsByParticipant.get(p.id as string) ?? [])
+      .sort((a, b) => a.slot - b.slot)
+      .map((row) => ({
+        slot: row.slot,
+        player: row.players,
+        points: row.players ? (playerPoints.get(row.players.id) ?? 0) : 0,
+      })),
+  }))
+}
+
 // ── getGlobalStats ────────────────────────────────────────────────────────────
 
 export async function getGlobalStats(): Promise<GlobalStats> {

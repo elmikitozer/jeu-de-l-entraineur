@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['flagcdn.com', 'media.api-sports.io'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'media.api-sports.io' },
+      { protocol: 'https', hostname: 'flagcdn.com' },
+    ],
   },
 }
 

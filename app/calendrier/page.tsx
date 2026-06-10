@@ -180,7 +180,10 @@ export default async function CalendrierPage() {
                       {/* Stade — masqué sur mobile */}
                       {match.venue && (
                         <div className="hidden sm:block w-[130px] flex-shrink-0 text-right">
-                          <span className="text-[10.5px] text-sub/70 font-body truncate block">
+                          <span
+                            className="text-[11px] md:text-[12px] text-sub/70 font-body line-clamp-2 break-words block"
+                            title={match.venue}
+                          >
                             {match.venue}
                           </span>
                         </div>

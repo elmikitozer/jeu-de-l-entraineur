@@ -4,22 +4,13 @@ import { getParticipantWithTeam } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
 import Delta from '@/components/Delta'
 import FormationView from '@/components/FormationView'
-import LiveBadge from '@/components/LiveBadge'
+import RosterSidebar from '@/components/RosterSidebar'
 import TriStripe from '@/components/TriStripe'
-import Flag from '@/components/Flag'
-import { TEAM_NAME_FR } from '@/lib/flags'
 
 export const revalidate = 60
 
 interface Props {
   params: { participantId: string }
-}
-
-const LINE_COLORS: Record<string, string> = {
-  Attaque: 'var(--c-red)',
-  Milieu: 'var(--c-blue)',
-  Défense: 'var(--c-green)',
-  Gardien: 'var(--c-sub)',
 }
 
 export default async function TeamPage({ params }: Props) {
@@ -29,28 +20,54 @@ export default async function TeamPage({ params }: Props) {
 
   const { participant, rank, delta, lines } = data
   const rankLabel =
-    rank === 1 ? '★ 1ᵉʳ au classement' : rank === 2 ? '2ᵉ' : rank === 3 ? '3ᵉ' : `${rank}ᵉ`
+    rank === 1 ? '★ 1ᵉʳ' : rank === 2 ? '2ᵉ' : rank === 3 ? '3ᵉ' : `${rank}ᵉ`
 
   return (
     <div className="max-w-[1280px] mx-auto px-6 md:px-12 pb-16">
-      {/* Back */}
-      <div className="pt-9 mb-6">
+
+      {/* ── Fix 1 : Bouton retour — sticky sur mobile, statique desktop ── */}
+      <div className="sticky top-16 z-30 md:static bg-bg pt-4 pb-2 md:pt-9 md:pb-0 md:mb-6">
         <Link
-          href="/"
+          href="/equipes"
           className="inline-flex items-center text-[13px] font-semibold font-body text-sub border border-line bg-card rounded-full px-3.5 py-1.5 hover:text-ink transition-colors"
         >
-          ← Classement
+          ← Toutes les équipes
         </Link>
       </div>
 
-      {/* ── Header participant ── */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-7">
+      {/* ── Header participant — Mobile : colonne centrée, Desktop : ligne ── */}
+
+      {/* Mobile header */}
+      <div className="md:hidden flex flex-col items-center gap-3 mb-6 text-center pt-2">
+        <Avatar name={participant.name} size={64} />
+        <h1 className="font-display font-bold text-[38px] uppercase leading-none text-ink">
+          {participant.name}
+        </h1>
+        {/* Points intégrés dans le header mobile */}
+        <div className="font-display font-bold italic text-[56px] leading-none text-ink">
+          {participant.total_points}
+          <span className="font-body font-semibold not-italic text-[16px] text-sub ml-2">pts</span>
+        </div>
+        {/* Fix 2 : pas de badge "Formation 4-3-3" */}
+        <div className="flex gap-2 justify-center">
+          <span className="bg-green text-white rounded px-2.5 py-1 text-[12px] font-bold font-body tracking-[0.08em]">
+            {rankLabel}
+          </span>
+          <span className="border border-line bg-card rounded px-2.5 py-1 text-[12px] font-bold font-body">
+            <Delta delta={delta} />
+          </span>
+        </div>
+      </div>
+
+      {/* Desktop header */}
+      <div className="hidden md:flex md:flex-row md:items-end md:justify-between gap-6 mb-7">
         <div className="flex items-center gap-5">
           <Avatar name={participant.name} size={76} />
           <div>
-            <h1 className="font-display font-bold text-[42px] md:text-[54px] uppercase leading-none text-ink">
+            <h1 className="font-display font-bold text-[54px] uppercase leading-none text-ink">
               {participant.name}
             </h1>
+            {/* Fix 2 : badges rang + delta uniquement, pas "Formation 4-3-3" */}
             <div className="flex flex-wrap gap-2 mt-2.5">
               <span className="bg-green text-white rounded px-2.5 py-1 text-[12px] font-bold font-body tracking-[0.08em]">
                 {rankLabel}
@@ -58,14 +75,11 @@ export default async function TeamPage({ params }: Props) {
               <span className="border border-line bg-card rounded px-2.5 py-1 text-[12px] font-bold font-body">
                 <Delta delta={delta} />
               </span>
-              <span className="border border-line bg-card text-sub rounded px-2.5 py-1 text-[12px] font-semibold font-body">
-                Formation 4-3-3
-              </span>
             </div>
           </div>
         </div>
 
-        {/* Points totaux */}
+        {/* Points totaux desktop */}
         <div className="bg-card border border-line rounded-2xl px-7 py-3.5 text-center self-start md:self-auto">
           <div className="font-display font-bold italic text-[46px] leading-none text-ink">
             {participant.total_points}
@@ -89,70 +103,12 @@ export default async function TeamPage({ params }: Props) {
       ) : (
         <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Terrain */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full">
             <FormationView lines={lines} />
           </div>
 
-          {/* Effectif sidebar */}
-          <div className="w-full lg:w-[380px] flex-shrink-0 flex flex-col gap-3.5">
-            {lines
-              .filter((l) => ['Attaque', 'Milieu', 'Défense', 'Gardien'].includes(l.label))
-              .sort((a, b) => {
-                const ORDER = ['Attaque', 'Milieu', 'Défense', 'Gardien']
-                return ORDER.indexOf(a.label) - ORDER.indexOf(b.label)
-              })
-              .map((line) => {
-                const subtotal = line.players.reduce((s, p) => s + p.points, 0)
-                return (
-                  <div
-                    key={line.label}
-                    className="bg-card border border-line rounded-xl overflow-hidden"
-                  >
-                    {/* Section header */}
-                    <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-line">
-                      <span
-                        className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                        style={{ background: LINE_COLORS[line.label] }}
-                      />
-                      <span className="font-display font-bold text-[17px] uppercase tracking-[0.08em] text-ink">
-                        {line.label}
-                      </span>
-                      <span className="ml-auto text-[11.5px] font-semibold font-body text-sub">
-                        {subtotal} pts
-                      </span>
-                    </div>
-
-                    {/* Players */}
-                    {line.players.map((player) => (
-                      <Link
-                        key={player.id}
-                        href={`/player/${player.id}`}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-zebra transition-colors border-b border-line last:border-b-0"
-                      >
-                        <Avatar name={player.name} size={34} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[14px] font-semibold font-body text-ink truncate">
-                              {player.name}
-                            </span>
-                            {player.isLive && <LiveBadge small />}
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Flag teamName={player.nationality} size="16x12" />
-                            <span className="text-[11px] text-sub font-body">
-                              {TEAM_NAME_FR[player.nationality] ?? player.nationality}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="font-display font-bold italic text-[21px] text-ink">
-                          {player.points}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                )
-              })}
-          </div>
+          {/* Effectif — accordéon mobile, sidebar desktop */}
+          <RosterSidebar lines={lines} />
         </div>
       )}
     </div>

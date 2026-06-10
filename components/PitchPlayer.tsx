@@ -1,41 +1,99 @@
-import Avatar from './Avatar'
+'use client'
+
+import { useState } from 'react'
+import Image from 'next/image'
 import LiveBadge from './LiveBadge'
+import { TEAM_COLORS } from '@/lib/flags'
 
 interface Props {
   name: string
-  nationalityCode: string
+  nationality: string
+  photoUrl: string | null
   points: number
   isLive?: boolean
 }
 
-export default function PitchPlayer({ name, nationalityCode, points, isLive = false }: Props) {
+const FALLBACK = { primary: '#2E5339', secondary: '#FFFFFF' }
+
+function displayName(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 11)
+  const result = parts[0][0] + '. ' + parts.slice(1).join(' ')
+  return result.slice(0, 11)
+}
+
+export default function PitchPlayer({ name, nationality, photoUrl, points, isLive = false }: Props) {
+  const [imgError, setImgError] = useState(false)
+  const colors = TEAM_COLORS[nationality] ?? FALLBACK
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  const showPhoto = !!photoUrl && !imgError
+
   return (
-    <div className="flex flex-col items-center gap-[5px] relative" style={{ width: 110 }}>
+    // Slot : 36px mobile, 44px desktop
+    <div className="flex flex-col items-center gap-[3px] relative w-9 md:w-11" style={{ minWidth: 0 }}>
       {isLive && (
-        <span className="absolute -top-2.5 right-3.5 z-10">
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
           <LiveBadge small />
         </span>
       )}
 
-      <Avatar name={name} size={52} ring />
-
-      {/* Name + country badge */}
+      {/* ── Cercle photo ── */}
       <div
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-[3px] text-white"
-        style={{ background: 'rgba(10,24,16,0.72)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+        className="relative flex-shrink-0 w-9 h-9 md:w-11 md:h-11 rounded-full overflow-hidden border-2 border-white"
+        style={{
+          background: colors.primary,
+          boxShadow: '0 2px 6px rgba(0,0,0,0.45)',
+        }}
       >
-        <span>{name}</span>
-        <span style={{ fontSize: 9.5, fontWeight: 700, opacity: 0.75, letterSpacing: '0.06em' }}>
-          {nationalityCode}
-        </span>
+        {showPhoto ? (
+          <Image
+            src={photoUrl!}
+            alt={name}
+            fill
+            className="object-cover object-top"
+            sizes="(max-width: 768px) 36px, 44px"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span
+              className="font-display font-bold leading-none"
+              style={{ color: colors.secondary, fontSize: 13 }}
+            >
+              {initials}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Points badge */}
+      {/* ── Nom ── */}
       <div
-        className="font-display font-bold italic bg-white text-ink rounded-md shadow-md"
-        style={{ fontSize: 15, padding: '1px 9px' }}
+        className="text-white text-center leading-none font-semibold w-full"
+        style={{
+          fontSize: 9,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+          fontFamily: 'var(--font-body, system-ui, sans-serif)',
+        }}
       >
-        {points} pts
+        {displayName(name)}
+      </div>
+
+      {/* ── Points ── */}
+      <div
+        className="font-display font-bold italic leading-none text-white"
+        style={{ fontSize: 10, textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+      >
+        {points}
       </div>
     </div>
   )

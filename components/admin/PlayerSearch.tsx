@@ -19,10 +19,11 @@ const POSITION_LABEL: Record<Position, string> = {
   FWD: 'attaquant / milieu',
 }
 
-// MID et FWD sont interchangeables — les postes FIFA ne sont pas toujours fidèles
-function positionAllowed(playerPos: Position, slotPos: Position): boolean {
-  if (slotPos === 'GK' || slotPos === 'DEF') return playerPos === slotPos
-  return playerPos === 'MID' || playerPos === 'FWD'
+// Pour les slots MID/FWD : tout joueur non-GK non-DEF est accepté (positions DB pas toujours fiables)
+function positionAllowed(playerPos: string | null | undefined, slotPos: Position): boolean {
+  if (slotPos === 'GK') return playerPos === 'GK'
+  if (slotPos === 'DEF') return playerPos === 'DEF'
+  return playerPos !== 'GK' && playerPos !== 'DEF'
 }
 
 export function PlayerSearch({ slot, position, players, value, onChange, disabledIds }: Props) {

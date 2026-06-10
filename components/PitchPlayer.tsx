@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import LiveBadge from './LiveBadge'
+import Flag from './Flag'
 import { TEAM_COLORS } from '@/lib/flags'
 
 interface Props {
@@ -17,9 +18,8 @@ const FALLBACK = { primary: '#2E5339', secondary: '#FFFFFF' }
 
 function displayName(name: string): string {
   const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 11)
-  const result = parts[0][0] + '. ' + parts.slice(1).join(' ')
-  return result.slice(0, 11)
+  if (parts.length === 1) return parts[0]
+  return parts[0][0] + '. ' + parts.slice(1).join(' ')
 }
 
 export default function PitchPlayer({ name, nationality, photoUrl, points, isLive = false }: Props) {
@@ -36,7 +36,7 @@ export default function PitchPlayer({ name, nationality, photoUrl, points, isLiv
   const showPhoto = !!photoUrl && !imgError
 
   return (
-    // Slot : 36px mobile, 44px desktop
+    // Slot : 36px mobile, 44px desktop — le texte peut déborder latéralement
     <div className="flex flex-col items-center gap-[3px] relative w-9 md:w-11" style={{ minWidth: 0 }}>
       {isLive && (
         <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
@@ -73,19 +73,23 @@ export default function PitchPlayer({ name, nationality, photoUrl, points, isLiv
         )}
       </div>
 
-      {/* ── Nom ── */}
+      {/* ── Nom + drapeau ── */}
       <div
-        className="text-white text-center leading-none font-semibold w-full"
-        style={{
-          fontSize: 9,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-          fontFamily: 'var(--font-body, system-ui, sans-serif)',
-        }}
+        className="flex items-center justify-center gap-[3px]"
+        style={{ overflow: 'visible', whiteSpace: 'nowrap' }}
       >
-        {displayName(name)}
+        <span
+          className="font-semibold leading-none"
+          style={{
+            fontSize: 9,
+            color: 'white',
+            textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+            fontFamily: 'var(--font-body, system-ui, sans-serif)',
+          }}
+        >
+          {displayName(name)}
+        </span>
+        <Flag teamName={nationality} size="16x12" />
       </div>
 
       {/* ── Points ── */}

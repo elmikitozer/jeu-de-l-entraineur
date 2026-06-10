@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { getGlobalStats } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
-import TriStripe from '@/components/TriStripe'
 import Flag from '@/components/Flag'
 import { TEAM_NAME_FR } from '@/lib/flags'
 
@@ -17,10 +16,10 @@ export default async function StatsPage() {
   return (
     <div className="max-w-[1280px] mx-auto px-6 md:px-12 pb-16">
       <div className="pt-10">
-        <h1 className="font-display font-bold text-[48px] md:text-[68px] uppercase leading-none tracking-[0.01em] text-ink">
-          Stats<br />& Cagnotte
+        <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
+          Stats<br />&amp; Cagnotte
         </h1>
-        <p className="mt-3 text-[15px] text-sub font-body">
+        <p className="mt-2 text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
           Coupe du Monde 2026
         </p>
       </div>
@@ -45,7 +44,7 @@ export default async function StatsPage() {
               </span>
             </div>
 
-            <TriStripe height={4} />
+            <div className="h-1 rounded-full" style={{ background: 'linear-gradient(90deg, var(--c-green), var(--c-lime))' }} />
 
             <div className="mt-6 flex flex-col sm:flex-row gap-4">
               {[

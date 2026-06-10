@@ -118,10 +118,10 @@ export default async function CalendrierPage() {
   return (
     <div className="max-w-[860px] mx-auto px-4 md:px-12 pb-16">
       <div className="pt-10 mb-10">
-        <h1 className="font-display font-bold text-[48px] md:text-[68px] uppercase leading-none tracking-[0.01em] text-ink">
+        <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
           Calendrier
         </h1>
-        <p className="mt-3 text-[15px] text-sub font-body">
+        <p className="mt-2 text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
           Coupe du Monde 2026 · {matches.length} matchs
         </p>
       </div>
@@ -138,16 +138,19 @@ export default async function CalendrierPage() {
             <section key={dayKey}>
               {/* Séparateur de journée */}
               <div className="flex items-center gap-3 mb-3">
-                <h2 className="font-body font-semibold text-[13px] uppercase tracking-[0.08em] text-sub capitalize">
+                <h2
+                  className="font-body font-bold text-[12px] uppercase tracking-[0.1em] capitalize"
+                  style={{ color: 'var(--c-lime)' }}
+                >
                   {dayLabel}
                 </h2>
-                <div className="flex-1 h-px bg-line" />
-                <span className="text-[11px] font-body text-sub/60">
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.2)' }} />
+                <span className="text-[11px] font-body" style={{ color: 'rgba(255,255,255,0.55)' }}>
                   {dayMatches.length} match{dayMatches.length > 1 ? 's' : ''}
                 </span>
               </div>
 
-              <div className="bg-card border border-line rounded-2xl overflow-hidden">
+              <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--c-card)', border: '1px solid var(--c-line)', boxShadow: '0 8px 24px rgba(0,40,25,0.18)', color: 'var(--c-ink)' }}>
                 {dayMatches.map((match, idx) => {
                   const isLast = idx === dayMatches.length - 1
                   const isLive = match.status === 'live'

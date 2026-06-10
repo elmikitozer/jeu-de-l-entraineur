@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { Barlow_Condensed, Outfit } from 'next/font/google';
 import './globals.css';
-import Link from 'next/link';
-import TriStripe from '@/components/TriStripe';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import FooterUpdatedAt from '@/components/FooterUpdatedAt';
 import MobileMenu from '@/components/MobileMenu';
+import NavLinks from '@/components/NavLinks';
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
@@ -18,22 +17,15 @@ const barlowCondensed = Barlow_Condensed({
 const outfit = Outfit({
   subsets: ['latin'],
   weight: ['400', '600'],
-  variable: '--font-body',
+  variable: '--font-body-fallback',
   display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: "Jeu de l'Entraîneur — CdM 2026",
   description:
-    'La version 2026 du célèbre Jeu de l’Entraîneur, pour parier sur les résultats de la Coupe du Monde 2026.',
+    "La version 2026 du célèbre Jeu de l'Entraîneur, pour parier sur les résultats de la Coupe du Monde 2026.",
 };
-
-const NAV_LINKS = [
-  { href: '/', label: 'Classement' },
-  { href: '/equipes', label: 'Équipes' },
-  { href: '/stats', label: 'Stats' },
-  { href: '/calendrier', label: 'Calendrier' },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,50 +35,67 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${barlowCondensed.variable} ${outfit.variable}`}
     >
       <head>
-        {/* Initialise le thème avant hydration pour éviter le flash */}
+        {/* Space Grotesk — police principale thème Electric Green */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+        />
+        {/* Restaure dark mode avant hydration */}
         <script
           dangerouslySetInnerHTML={{
             __html: `try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
       </head>
-      <body className="font-body antialiased bg-bg text-ink min-h-screen flex flex-col">
+      <body
+        className="font-body antialiased text-ink min-h-screen flex flex-col"
+        style={{ background: 'var(--c-bg-gradient)' }}
+      >
         {/* ── Navbar ── */}
-        <header className="sticky top-0 z-50 bg-card border-b border-line">
-          <nav className="max-w-[1280px] mx-auto px-6 md:px-12 flex items-center gap-8 h-16">
-            <Link
-              href="/"
-              className="font-display font-bold text-[22px] uppercase tracking-[0.06em] text-ink whitespace-nowrap"
-            >
-              Jeu de l&apos;Entraîneur
-            </Link>
+        <header className="sticky top-0 z-50">
+          <nav className="max-w-[1280px] mx-auto px-6 md:px-12 flex items-center gap-6 h-16">
+            {/* Logo : badge lime + texte blanc */}
+            <a href="/" className="flex items-center gap-2.5 whitespace-nowrap flex-shrink-0">
+              <span
+                className="flex items-center justify-center rounded-lg text-[13px] font-bold font-body flex-shrink-0"
+                style={{ background: 'var(--c-lime)', color: 'var(--c-ink)', padding: '4px 9px' }}
+              >
+                JE
+              </span>
+              <span className="font-body font-bold text-[17px] text-white">
+                Jeu de l&apos;Entraîneur
+              </span>
+            </a>
 
-            {/* Liens desktop */}
-            <div className="hidden md:flex items-center gap-6 text-[14px] font-semibold font-body text-sub">
-              {NAV_LINKS.map(({ href, label }) => (
-                <Link key={href} href={href} className="hover:text-ink transition-colors">
-                  {label}
-                </Link>
-              ))}
-            </div>
+            {/* Liens desktop avec pill actif */}
+            <NavLinks />
 
             <div className="ml-auto flex items-center gap-2">
-              <span className="hidden md:block">
+              {/* Dot lime + "Mise à jour" */}
+              <span className="hidden md:flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full animate-pulse flex-shrink-0"
+                  style={{ background: 'var(--c-lime)' }}
+                />
                 <FooterUpdatedAt />
               </span>
               <DarkModeToggle />
               <MobileMenu />
             </div>
           </nav>
-          <TriStripe height={5} />
+          {/* Ligne lime 2px */}
+          <div className="h-0.5" style={{ background: 'var(--c-lime)' }} />
         </header>
 
         {/* ── Contenu ── */}
         <main className="flex-1">{children}</main>
 
         {/* ── Footer ── */}
-        <footer className="border-t border-line mt-16">
-          <div className="max-w-[1280px] mx-auto px-6 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-sub">
+        <footer className="mt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+          <div className="max-w-[1280px] mx-auto px-6 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
             <span className="font-body">Jeu de l&apos;Entraîneur · CdM 2026</span>
             <FooterUpdatedAt />
           </div>

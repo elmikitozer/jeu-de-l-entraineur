@@ -5,7 +5,6 @@ import Avatar from '@/components/Avatar'
 import Delta from '@/components/Delta'
 import FormationView from '@/components/FormationView'
 import RosterSidebar from '@/components/RosterSidebar'
-import TriStripe from '@/components/TriStripe'
 import TeamsLocked from '@/components/TeamsLocked'
 
 export const revalidate = 60
@@ -19,7 +18,7 @@ export default async function TeamPage({ params }: Props) {
     return (
       <div className="max-w-[860px] mx-auto px-4 md:px-12">
         <div className="pt-10 mb-2">
-          <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-ink">
+          <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] italic text-white">
             Équipe
           </h1>
         </div>
@@ -54,7 +53,7 @@ export default async function TeamPage({ params }: Props) {
       {/* Mobile header */}
       <div className="md:hidden flex flex-col items-center gap-3 mb-6 text-center pt-2">
         <Avatar name={participant.name} size={64} />
-        <h1 className="font-display font-bold text-[38px] uppercase leading-none text-ink">
+        <h1 className="font-display font-bold italic text-[38px] uppercase leading-none text-white">
           {participant.name}
         </h1>
         {/* Points intégrés dans le header mobile */}
@@ -78,7 +77,7 @@ export default async function TeamPage({ params }: Props) {
         <div className="flex items-center gap-5">
           <Avatar name={participant.name} size={76} />
           <div>
-            <h1 className="font-display font-bold text-[54px] uppercase leading-none text-ink">
+            <h1 className="font-display font-bold italic text-[54px] uppercase leading-none text-white">
               {participant.name}
             </h1>
             {/* Fix 2 : badges rang + delta uniquement, pas "Formation 4-3-3" */}
@@ -101,9 +100,7 @@ export default async function TeamPage({ params }: Props) {
           <div className="text-[11px] font-bold font-body tracking-[0.14em] text-sub uppercase mt-1">
             Points
           </div>
-          <div className="mt-2.5">
-            <TriStripe height={4} />
-          </div>
+          <div className="mt-2.5 h-1 rounded-full" style={{ background: 'linear-gradient(90deg, var(--c-green), var(--c-lime))' }} />
         </div>
       </div>
 

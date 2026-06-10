@@ -2,77 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens — Light ─────────────────────────────────────────── */
+/* ── Design tokens — Electric Green ───────────────────────────────── */
 :root {
-  --c-bg: #FBF7EF;
+  --c-bg: #00B25C;
+  --c-bg-gradient: linear-gradient(160deg, #00B25C 0%, #00BC8B 55%, #00B6C2 100%);
   --c-card: #FFFFFF;
-  --c-ink: #1A1A1A;
-  --c-sub: #75716A;
-  --c-line: #E8E2D4;
-  --c-green: #0E7C3F;
-  --c-blue: #1D4ED8;
-  --c-red: #D7263D;
-  --c-delta-pos: #0E7C3F;
-  --c-delta-neg: #D7263D;
-  --c-zebra: #FDFBF5;
-  --c-podium1: #0E7C3F;
-  --c-podium2: #1D4ED8;
-  --c-podium3: #D7263D;
-  --pitch-a: #2F9E5B;
-  --pitch-b: #2A9152;
-  --pitch-line: rgba(255, 255, 255, 0.45);
+  --c-card-overlay: rgba(255, 255, 255, 0.14);
+  --c-card-border: rgba(255, 255, 255, 0.35);
+  --c-ink: #07261B;
+  --c-sub: #5E7A6E;
+  --c-line: #E4EFE8;
+  --c-green: #00B25C;
+  --c-blue: #00BC8B;
+  --c-red: #E0245E;
+  --c-lime: #C8F051;
+  --c-positive: #00B25C;
+  --c-negative: #E0245E;
+  --c-live: #E0245E;
+  /* Aliases tailwind */
+  --c-delta-pos: #00B25C;
+  --c-delta-neg: #E0245E;
+  --c-zebra: #F2FAF5;
+  --c-podium1: #00B25C;
+  --c-podium2: #00BC8B;
+  --c-podium3: #E0245E;
+  /* Terrain */
+  --pitch-a: #1E5C34;
+  --pitch-b: #195029;
+  --pitch-line: rgba(255, 255, 255, 0.40);
   --av-l: 62%;
 }
 
-/* ── Design tokens — Dark ──────────────────────────────────────────── */
+/* ── Dark mode ─────────────────────────────────────────────────────── */
 .dark {
-  --c-bg: #14120E;
-  --c-card: #1E1B15;
-  --c-ink: #F2EEE6;
-  --c-sub: #9C9486;
-  --c-line: #2E2A21;
-  --c-green: #1FA45B;
-  --c-blue: #4D7CE8;
-  --c-red: #E04A57;
-  --c-delta-pos: #3DD68C;
+  --c-bg: #003D20;
+  --c-bg-gradient: linear-gradient(160deg, #005C30 0%, #006B4F 55%, #006B6B 100%);
+  --c-card: rgba(0, 0, 0, 0.30);
+  --c-card-overlay: rgba(0, 0, 0, 0.25);
+  --c-card-border: rgba(255, 255, 255, 0.15);
+  --c-ink: #E8F5EF;
+  --c-sub: #7AADA0;
+  --c-line: rgba(255, 255, 255, 0.12);
+  --c-green: #1EC97A;
+  --c-blue: #2ED4A8;
+  --c-red: #F0606C;
+  --c-lime: #D4F56A;
+  --c-delta-pos: #1EC97A;
   --c-delta-neg: #F0606C;
-  --c-zebra: #211E17;
-  --c-podium1: #157F45;
-  --c-podium2: #3A5FCC;
-  --c-podium3: #C53B49;
-  --pitch-a: #16482C;
-  --pitch-b: #133F27;
-  --pitch-line: rgba(255, 255, 255, 0.30);
+  --c-zebra: rgba(0, 0, 0, 0.15);
   --av-l: 68%;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────── */
 body {
-  background: var(--c-bg);
   color: var(--c-ink);
-  font-family: var(--font-body, "Outfit", sans-serif);
+  font-family: var(--font-body, "Space Grotesk", sans-serif);
 }
 
 /* ── Scrollbar fine ────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--c-line); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
 
-/* ── Podium dark mode gradients ────────────────────────────────────────────── */
-.dark [data-podium="1"] {
-  background: linear-gradient(170deg, #157F45 0%, #0D4F2B 100%) !important;
-  border: 1px solid rgba(255,255,255,0.14);
-}
-.dark [data-podium="2"] {
-  background: linear-gradient(170deg, #3A5FCC 0%, #1E3580 100%) !important;
-  border: 1px solid rgba(255,255,255,0.14);
-}
-.dark [data-podium="3"] {
-  background: linear-gradient(170deg, #C53B49 0%, #7E252F 100%) !important;
-  border: 1px solid rgba(255,255,255,0.14);
-}
-
-/* ── Animations ────────────────────────────────────────────────────────────── */
+/* ── Animations ────────────────────────────────────────────────────── */
 @keyframes menu-open {
   from { max-height: 0;     opacity: 0; }
   to   { max-height: 300px; opacity: 1; }
@@ -85,5 +77,5 @@ body {
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .font-display { font-family: var(--font-display, "Barlow Condensed", sans-serif); }
-  .font-body    { font-family: var(--font-body,    "Outfit",            sans-serif); }
+  .font-body    { font-family: var(--font-body,    "Space Grotesk",     sans-serif); }
 }

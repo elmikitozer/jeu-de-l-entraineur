@@ -42,7 +42,7 @@ export default async function PlayerPage({ params }: Props) {
       <div className="flex items-center gap-5 mb-8">
         <Avatar name={player.name} size={72} />
         <div>
-          <h1 className="font-display font-bold text-[40px] md:text-[52px] uppercase leading-none text-ink">
+          <h1 className="font-display font-bold italic uppercase text-[40px] md:text-[52px] leading-none text-white">
             {player.name}
           </h1>
           <div className="flex flex-wrap gap-2 mt-2">

@@ -198,7 +198,7 @@ export default async function EquipesPage() {
     return (
       <div className="max-w-[860px] mx-auto px-4 md:px-12">
         <div className="pt-10 mb-2">
-          <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-ink">
+          <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
             Toutes les<br />équipes
           </h1>
         </div>
@@ -215,10 +215,10 @@ export default async function EquipesPage() {
 
       {/* Hero */}
       <div className="pt-10 md:pt-[42px] mb-8 md:mb-10">
-        <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-ink">
+        <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
           Toutes les<br />équipes
         </h1>
-        <p className="mt-2.5 text-[15px] text-sub font-body">
+        <p className="mt-2 text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
           {count > 0
             ? `${count} participant${count > 1 ? 's' : ''} · Formation 4‑3‑3 · CdM 2026`
             : 'Coupe du Monde 2026'}

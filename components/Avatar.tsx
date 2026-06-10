@@ -38,10 +38,11 @@ export default function Avatar({ name, size = 40, onColor = false, ring = false,
 
   return (
     <div
-      className={`rounded-full flex-shrink-0 flex items-center justify-center font-display font-bold ${className}`}
+      className={`flex-shrink-0 flex items-center justify-center font-display font-bold ${className}`}
       style={{
         width: size,
         height: size,
+        borderRadius: 12,
         background: bg,
         color,
         border,

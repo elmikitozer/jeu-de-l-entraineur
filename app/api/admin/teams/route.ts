@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Player } from '@/lib/types'
+import { syncRetroactive } from '@/lib/sync-retroactive'
 
 function getSupabase() {
   return createClient(
@@ -68,6 +69,7 @@ interface PostSlot {
 interface PostBody {
   participant_name: string
   slots: PostSlot[]
+  retroactive?: boolean
 }
 
 export async function POST(request: NextRequest) {
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Corps JSON invalide' }, { status: 400 })
   }
 
-  const { participant_name, slots } = body
+  const { participant_name, slots, retroactive = false } = body
 
   // ── Validation de la structure ─────────────────────────────────────────
   if (!participant_name || typeof participant_name !== 'string' || !participant_name.trim()) {
@@ -195,5 +197,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
+  if (retroactive) {
+    const retroPoints = await syncRetroactive(participantId)
+    return NextResponse.json({ success: true, participant_id: participantId, retro_points: retroPoints })
+  }
+
   return NextResponse.json({ success: true, participant_id: participantId })
+}
+
+// ── DELETE /api/admin/teams?participantId={id} ──────────────────────────────
+
+export async function DELETE(request: NextRequest) {
+  const participantId = new URL(request.url).searchParams.get('participantId')
+  if (!participantId) {
+    return NextResponse.json({ error: 'participantId requis' }, { status: 400 })
+  }
+
+  const supabase = getSupabase()
+
+  await supabase.from('teams').delete().eq('participant_id', participantId)
+
+  const { error } = await supabase.from('participants').delete().eq('id', participantId)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

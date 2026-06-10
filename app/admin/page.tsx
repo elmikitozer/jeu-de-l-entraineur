@@ -91,6 +91,9 @@ export default function AdminPage() {
   const [participants, setParticipants] = useState<ParticipantEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [retroactive, setRetroactive] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<ParticipantEntry | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   )
@@ -127,7 +130,33 @@ export default function AdminPage() {
       slots[slot] = player
     }
     dispatch({ type: 'LOAD', name: p.name, id: p.id, slots })
+    setRetroactive(false)
     setSubmitMsg(null)
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/teams?participantId=${confirmDelete.id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string }
+        setSubmitMsg({ type: 'error', text: data.error ?? 'Erreur suppression' })
+      } else {
+        if (state.editingId === confirmDelete.id) {
+          dispatch({ type: 'RESET' })
+          setRetroactive(false)
+        }
+        await loadData()
+      }
+    } catch {
+      setSubmitMsg({ type: 'error', text: 'Erreur réseau' })
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(null)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -146,19 +175,24 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participant_name: state.participantName, slots }),
+        body: JSON.stringify({ participant_name: state.participantName, slots, retroactive }),
       })
 
-      const data = (await res.json()) as { error?: string }
+      const data = (await res.json()) as { error?: string; retro_points?: number }
 
       if (!res.ok) {
         setSubmitMsg({ type: 'error', text: data.error ?? 'Erreur inconnue' })
       } else {
+        const retroMsg =
+          retroactive && data.retro_points !== undefined
+            ? ` — ${data.retro_points} points rétroactifs calculés`
+            : ''
         setSubmitMsg({
           type: 'success',
-          text: `Équipe de ${state.participantName} enregistrée !`,
+          text: `Équipe de ${state.participantName} enregistrée !${retroMsg}`,
         })
         dispatch({ type: 'RESET' })
+        setRetroactive(false)
         await loadData()
       }
     } catch {
@@ -227,6 +261,7 @@ export default function AdminPage() {
             <ParticipantList
               participants={participants}
               onSelect={handleSelectParticipant}
+              onDelete={(p) => setConfirmDelete(p)}
               selectedId={state.editingId}
             />
           </div>
@@ -252,6 +287,33 @@ export default function AdminPage() {
                     className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#C9A84C] transition-colors"
                   />
                 </div>
+
+                {/* Calcul rétroactif — visible uniquement pour un nouveau participant */}
+                {!state.editingId && (
+                  <div className="flex items-center justify-between bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-3">
+                    <div>
+                      <p className="text-sm text-gray-300 font-medium">Calculer les points depuis le début</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Recalcule les points sur tous les matchs déjà terminés
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={retroactive}
+                      onClick={() => setRetroactive((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                        retroactive ? 'bg-[#C9A84C]' : 'bg-[#333]'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                          retroactive ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
 
                 {/* Avertissements nationalité */}
                 {natWarnings.length > 0 && (
@@ -379,6 +441,38 @@ export default function AdminPage() {
           </form>
         </div>
       </div>
+
+      {/* Modale de confirmation de suppression */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6 w-80 shadow-xl">
+            <p className="text-white text-sm font-medium mb-1">
+              Supprimer l&apos;équipe de <span className="text-[#C9A84C]">{confirmDelete.name}</span>&nbsp;?
+            </p>
+            <p className="text-gray-500 text-xs mb-5">
+              Les entrées teams et participants seront supprimées. L&apos;historique des points est conservé.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+                className="px-4 py-1.5 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-40"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteConfirmed()}
+                disabled={deleting}
+                className="px-4 py-1.5 text-sm bg-red-700 hover:bg-red-600 text-white rounded transition-colors disabled:opacity-40"
+              >
+                {deleting ? 'Suppression…' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

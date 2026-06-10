@@ -12,10 +12,11 @@ export interface ParticipantEntry {
 interface Props {
   participants: ParticipantEntry[]
   onSelect: (p: ParticipantEntry) => void
+  onDelete: (p: ParticipantEntry) => void
   selectedId: string | null
 }
 
-export function ParticipantList({ participants, onSelect, selectedId }: Props) {
+export function ParticipantList({ participants, onSelect, onDelete, selectedId }: Props) {
   if (participants.length === 0) {
     return <p className="text-gray-600 text-sm px-1">Aucun participant pour l&apos;instant.</p>
   }
@@ -27,29 +28,50 @@ export function ParticipantList({ participants, onSelect, selectedId }: Props) {
         const teamSize = p.team.length
 
         return (
-          <button
+          <div
             key={p.id}
-            type="button"
-            onClick={() => onSelect(p)}
-            className={`w-full text-left px-3 py-2.5 rounded-md flex items-center justify-between gap-2 transition-colors ${
-              isSelected
-                ? 'bg-[#C9A84C] text-black'
-                : 'bg-[#1a1a1a] text-white hover:bg-[#222]'
+            className={`w-full flex items-center gap-1 rounded-md transition-colors ${
+              isSelected ? 'bg-[#C9A84C]' : 'bg-[#1a1a1a] hover:bg-[#222]'
             }`}
           >
-            <span className="font-medium text-sm truncate">{p.name}</span>
-            <span
-              className={`text-xs font-mono shrink-0 ${
+            <button
+              type="button"
+              onClick={() => onSelect(p)}
+              className="flex-1 text-left px-3 py-2.5 flex items-center justify-between gap-2 min-w-0"
+            >
+              <span
+                className={`font-medium text-sm truncate ${isSelected ? 'text-black' : 'text-white'}`}
+              >
+                {p.name}
+              </span>
+              <span
+                className={`text-xs font-mono shrink-0 ${
+                  isSelected
+                    ? 'text-black/70'
+                    : teamSize === 11
+                      ? 'text-[#3CAC3B]'
+                      : 'text-orange-400'
+                }`}
+              >
+                {teamSize}/11
+              </span>
+            </button>
+            <button
+              type="button"
+              title={`Supprimer l'équipe de ${p.name}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(p)
+              }}
+              className={`shrink-0 px-2 py-2.5 text-xs transition-colors ${
                 isSelected
-                  ? 'text-black/70'
-                  : teamSize === 11
-                    ? 'text-[#3CAC3B]'
-                    : 'text-orange-400'
+                  ? 'text-black/50 hover:text-black'
+                  : 'text-gray-600 hover:text-red-400'
               }`}
             >
-              {teamSize}/11
-            </span>
-          </button>
+              ✕
+            </button>
+          </div>
         )
       })}
     </div>

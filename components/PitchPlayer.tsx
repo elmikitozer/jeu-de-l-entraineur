@@ -73,7 +73,7 @@ export default function PitchPlayer({ name, nationality, photoUrl, points, isLiv
         )}
       </div>
 
-      {/* ── Nom + drapeau ── */}
+      {/* ── Nom + drapeau (desktop seulement) ── */}
       <div
         className="flex items-center justify-center gap-[3px]"
         style={{ overflow: 'visible', whiteSpace: 'nowrap' }}
@@ -87,9 +87,11 @@ export default function PitchPlayer({ name, nationality, photoUrl, points, isLiv
             fontFamily: 'var(--font-body, system-ui, sans-serif)',
           }}
         >
-          {displayName(name)}
+          {displayName(name).slice(0, 15)}
         </span>
-        <Flag teamName={nationality} size="16x12" />
+        <span className="hidden md:inline-flex">
+          <Flag teamName={nationality} size="16x12" />
+        </span>
       </div>
 
       {/* ── Points ── */}

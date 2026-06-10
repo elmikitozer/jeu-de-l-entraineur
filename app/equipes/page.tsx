@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { getAllParticipantsWithTeams } from '@/lib/queries'
 import type { ParticipantOverview, SlotEntry } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
-import JerseySVG from '@/components/JerseySVG'
 import { TEAM_COLORS } from '@/lib/flags'
 
 export const revalidate = 60
@@ -17,11 +16,66 @@ function playerInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-function playerDisplayName(name: string): string {
+function playerLastName(name: string): string {
   const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].slice(0, 11)
-  const result = parts[0][0] + '. ' + parts.slice(1).join(' ')
-  return result.slice(0, 11)
+  return parts[parts.length - 1]
+}
+
+// ── MiniPlayer ────────────────────────────────────────────────────────────────
+
+function MiniPlayer({ player, points }: { player: NonNullable<SlotEntry['player']>; points: number }) {
+  const colors = TEAM_COLORS[player.nationality] ?? DEFAULT_COLORS
+  const initials = playerInitials(player.name)
+  const label = playerLastName(player.name)
+
+  return (
+    <div
+      className="flex flex-col items-center"
+      style={{ width: 34, gap: 2 }}
+      title={`${player.name} — ${points} pts`}
+    >
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          border: '1.5px solid white',
+          background: colors.primary,
+          flexShrink: 0,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+        }}
+      >
+        {player.photo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={player.photo_url}
+            alt={player.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: colors.secondary, fontSize: 9, fontWeight: 700 }}>{initials}</span>
+          </div>
+        )}
+      </div>
+      <span style={{
+        fontSize: 7.5,
+        color: 'white',
+        textAlign: 'center',
+        maxWidth: 34,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+        fontWeight: 600,
+        lineHeight: 1.2,
+        fontFamily: 'var(--font-body, system-ui, sans-serif)',
+      }}>
+        {label}
+      </span>
+    </div>
+  )
 }
 
 function rankLabel(rank: number): string {
@@ -81,21 +135,10 @@ function MiniFormation({ slots }: { slots: SlotEntry[] }) {
             {rowSlots.map((slot) => {
               const entry = slotMap.get(slot)
               if (!entry?.player) {
-                // Placeholder vide (slot non rempli)
-                return <div key={slot} style={{ width: 36, height: 54 }} />
+                return <div key={slot} style={{ width: 34, height: 44 }} />
               }
-              const { player, points } = entry
-              const colors = TEAM_COLORS[player.nationality] ?? DEFAULT_COLORS
               return (
-                <JerseySVG
-                  key={slot}
-                  primary={colors.primary}
-                  secondary={colors.secondary}
-                  initials={playerInitials(player.name)}
-                  label={playerDisplayName(player.name)}
-                  size="sm"
-                  title={`${player.name} — ${points} pts`}
-                />
+                <MiniPlayer key={slot} player={entry.player} points={entry.points} />
               )
             })}
           </div>

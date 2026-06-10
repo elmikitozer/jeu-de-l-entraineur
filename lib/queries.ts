@@ -338,6 +338,7 @@ export interface SlotEntry {
     nationality: string
     nationality_code: string
     position: string
+    photo_url: string | null
   } | null
   points: number
 }
@@ -364,7 +365,7 @@ export async function getAllParticipantsWithTeams(): Promise<ParticipantOverview
       .order('total_points', { ascending: false }),
     supabase
       .from('teams')
-      .select('participant_id, slot, players(id, name, nationality, nationality_code, position)'),
+      .select('participant_id, slot, players(id, name, nationality, nationality_code, position, photo_url)'),
     supabase
       .from('points_log')
       .select('player_id, total_points'),
@@ -381,7 +382,7 @@ export async function getAllParticipantsWithTeams(): Promise<ParticipantOverview
   type RawTeamRow = {
     participant_id: string
     slot: number
-    players: { id: string; name: string; nationality: string; nationality_code: string; position: string } | null
+    players: { id: string; name: string; nationality: string; nationality_code: string; position: string; photo_url: string | null } | null
   }
   const teamsByParticipant = new Map<string, RawTeamRow[]>()
   for (const row of (teamRows ?? []) as unknown as RawTeamRow[]) {

@@ -19,11 +19,23 @@ const POSITION_LABEL: Record<Position, string> = {
   FWD: 'attaquant / milieu',
 }
 
-// Pour les slots MID/FWD : tout joueur non-GK non-DEF est accepté (positions DB pas toujours fiables)
+// Pour les slots MID/FWD : tout joueur non-GK non-DEF est accepté
 function positionAllowed(playerPos: string | null | undefined, slotPos: Position): boolean {
   if (slotPos === 'GK') return playerPos === 'GK'
   if (slotPos === 'DEF') return playerPos === 'DEF'
   return playerPos !== 'GK' && playerPos !== 'DEF'
+}
+
+function matchesSearch(playerName: string, query: string): boolean {
+  const normalize = (s: string) =>
+    s.toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .trim()
+  const name = normalize(playerName)
+  const words = normalize(query).split(/\s+/).filter(Boolean)
+  return words.every((word) => name.includes(word))
 }
 
 export function PlayerSearch({ slot, position, players, value, onChange, disabledIds }: Props) {
@@ -32,9 +44,7 @@ export function PlayerSearch({ slot, position, players, value, onChange, disable
   const containerRef = useRef<HTMLDivElement>(null)
 
   const filtered = players.filter(
-    (p) =>
-      positionAllowed(p.position, position) &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+    (p) => positionAllowed(p.position, position) && matchesSearch(p.name, search)
   )
 
   useEffect(() => {

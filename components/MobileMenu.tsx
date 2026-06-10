@@ -32,7 +32,7 @@ export default function MobileMenu() {
         aria-expanded={open}
         aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
         className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
-        style={{ color: 'rgba(255,255,255,0.8)' }}
+        style={{ color: 'var(--c-nav-text)' }}
       >
         {open ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

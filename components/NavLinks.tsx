@@ -24,8 +24,8 @@ export default function NavLinks() {
             className="text-[13.5px] font-semibold font-body px-[15px] py-[7px] rounded-full transition-colors"
             style={
               isActive
-                ? { background: 'rgba(255,255,255,0.95)', color: 'var(--c-ink)' }
-                : { color: 'rgba(255,255,255,0.85)' }
+                ? { background: 'var(--c-nav-active-bg)', color: 'var(--c-nav-active-text)' }
+                : { color: 'var(--c-nav-text)' }
             }
           >
             {label}

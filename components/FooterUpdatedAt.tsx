@@ -11,7 +11,7 @@ export default function FooterUpdatedAt() {
   }, [])
 
   return (
-    <span className="font-body text-[12px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+    <span className="font-body text-[12px]" style={{ color: 'var(--c-nav-text)' }}>
       {mins === 0
         ? 'Mis à jour il y a moins d\'une minute'
         : `Mis à jour il y a ${mins} min`}

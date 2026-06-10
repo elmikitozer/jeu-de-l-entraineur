@@ -55,17 +55,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ background: 'var(--c-bg-gradient)' }}
       >
         {/* ── Navbar ── */}
-        <header className="sticky top-0 z-50">
+        <header
+          className="sticky top-0 z-50 transition-colors duration-200"
+          style={{ background: 'var(--c-nav-bg)', borderBottom: '1px solid var(--c-nav-border)' }}
+        >
           <nav className="max-w-[1280px] mx-auto px-6 md:px-12 flex items-center gap-6 h-16">
-            {/* Logo : badge lime + texte blanc */}
+            {/* Logo : badge lime + texte */}
             <a href="/" className="flex items-center gap-2.5 whitespace-nowrap flex-shrink-0">
               <span
                 className="flex items-center justify-center rounded-lg text-[13px] font-bold font-body flex-shrink-0"
-                style={{ background: 'var(--c-lime)', color: 'var(--c-ink)', padding: '4px 9px' }}
+                style={{ background: 'var(--c-lime)', color: '#07261B', padding: '4px 9px' }}
               >
                 JE
               </span>
-              <span className="font-body font-bold text-[17px] text-white">
+              <span
+                className="font-body font-bold text-[17px]"
+                style={{ color: 'var(--c-nav-text-strong)' }}
+              >
                 Jeu de l&apos;Entraîneur
               </span>
             </a>
@@ -74,11 +80,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavLinks />
 
             <div className="ml-auto flex items-center gap-2">
-              {/* Dot lime + "Mise à jour" */}
+              {/* Dot + "Mise à jour" */}
               <span className="hidden md:flex items-center gap-2">
                 <span
                   className="w-2 h-2 rounded-full animate-pulse flex-shrink-0"
-                  style={{ background: 'var(--c-lime)' }}
+                  style={{ background: 'var(--c-nav-dot)' }}
                 />
                 <FooterUpdatedAt />
               </span>
@@ -87,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </nav>
           {/* Ligne lime 2px */}
-          <div className="h-0.5" style={{ background: 'var(--c-lime)' }} />
+          <div className="h-0.5" style={{ background: 'var(--c-nav-dot)' }} />
         </header>
 
         {/* ── Contenu ── */}

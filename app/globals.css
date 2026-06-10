@@ -53,6 +53,27 @@
   --av-l: 68%;
 }
 
+/* ── Tokens nav ────────────────────────────────────────────────────── */
+:root {
+  --c-nav-bg: transparent;
+  --c-nav-text: rgba(255, 255, 255, 0.85);
+  --c-nav-text-strong: #ffffff;
+  --c-nav-border: rgba(255, 255, 255, 0.2);
+  --c-nav-active-bg: rgba(255, 255, 255, 0.95);
+  --c-nav-active-text: var(--c-ink);
+  --c-nav-dot: var(--c-lime);
+}
+
+.dark {
+  --c-nav-bg: rgba(255, 255, 255, 0.92);
+  --c-nav-text: #07261B;
+  --c-nav-text-strong: #07261B;
+  --c-nav-border: rgba(0, 0, 0, 0.08);
+  --c-nav-active-bg: var(--c-ink);
+  --c-nav-active-text: #ffffff;
+  --c-nav-dot: var(--c-green);
+}
+
 /* ── Base ──────────────────────────────────────────────────────────── */
 body {
   color: var(--c-ink);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-const REVEAL_DATE = new Date('2026-06-11T19:00:00Z')
+const REVEAL_DATE = new Date('2026-06-10T22:00:00Z') // 11 juin 00h00 heure de Paris (UTC+2)
 
 function getTimeLeft() {
   const diff = REVEAL_DATE.getTime() - Date.now()
@@ -42,10 +42,10 @@ export default function TeamsLocked() {
       <div className="flex flex-col items-center gap-4">
         <span className="text-[52px] leading-none select-none">🔒</span>
         <h2 className="font-display font-bold text-[28px] md:text-[36px] uppercase leading-none text-ink">
-          Les équipes seront<br />révélées prochainement
+          Les équipes seront<br />révélées à minuit
         </h2>
         <p className="text-[14px] font-body text-sub max-w-[340px]">
-          Rendez-vous le 11 juin 2026 à 21h00 pour découvrir toutes les compositions.
+          Rendez-vous dans la nuit du 10 au 11 juin 2026 à 00h00 pour découvrir toutes les compositions.
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export default function TeamsLocked() {
         </div>
       ) : (
         <p className="text-[16px] font-body font-semibold text-green">
-          Les équipes sont maintenant visibles — rechargez la page.
+          C&apos;est l&apos;heure ! Les équipes sont révélées — rechargez la page.
         </p>
       )}
     </div>

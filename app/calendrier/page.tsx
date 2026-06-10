@@ -156,32 +156,32 @@ export default async function CalendrierPage() {
                     <div
                       key={match.id}
                       className={[
-                        'flex items-center gap-3 px-4 py-3',
+                        'flex flex-col px-4 py-3 gap-1',
                         isLive ? 'bg-red/5' : idx % 2 === 0 ? 'bg-card' : 'bg-zebra',
                         !isLast ? 'border-b border-line' : '',
                       ].join(' ')}
                     >
-                      {/* Équipe domicile */}
-                      <TeamCell name={match.home_team} align="right" />
+                      {/* Ligne 1 : équipes + score */}
+                      <div className="flex items-center gap-3">
+                        <TeamCell name={match.home_team} align="right" />
 
-                      {/* Score / heure + badge phase */}
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0 w-[80px] md:w-[96px]">
-                        <ScoreDisplay match={match} />
-                        <div className="flex items-center gap-1">
-                          <StageBadge stage={match.stage} />
-                          {isLive && <StatusBadge status="live" />}
-                          {match.status === 'finished' && <StatusBadge status="finished" />}
+                        <div className="flex flex-col items-center gap-1 flex-shrink-0 w-[80px] md:w-[96px]">
+                          <ScoreDisplay match={match} />
+                          <div className="flex items-center gap-1">
+                            <StageBadge stage={match.stage} />
+                            {isLive && <StatusBadge status="live" />}
+                            {match.status === 'finished' && <StatusBadge status="finished" />}
+                          </div>
                         </div>
+
+                        <TeamCell name={match.away_team} align="left" />
                       </div>
 
-                      {/* Équipe extérieur */}
-                      <TeamCell name={match.away_team} align="left" />
-
-                      {/* Stade — masqué sur mobile */}
+                      {/* Ligne 2 : stade */}
                       {match.venue && (
-                        <div className="hidden sm:block w-[130px] flex-shrink-0 text-right">
+                        <div className="text-center">
                           <span
-                            className="text-[11px] md:text-[12px] text-sub/70 font-body line-clamp-2 break-words block"
+                            className="text-[11px] md:text-[12px] text-sub/70 font-body break-words"
                             title={match.venue}
                           >
                             {match.venue}

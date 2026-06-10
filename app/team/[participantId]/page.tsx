@@ -6,6 +6,7 @@ import Delta from '@/components/Delta'
 import FormationView from '@/components/FormationView'
 import RosterSidebar from '@/components/RosterSidebar'
 import TriStripe from '@/components/TriStripe'
+import TeamsLocked from '@/components/TeamsLocked'
 
 export const revalidate = 60
 
@@ -14,6 +15,19 @@ interface Props {
 }
 
 export default async function TeamPage({ params }: Props) {
+  if (process.env.TEAMS_VISIBLE !== 'true') {
+    return (
+      <div className="max-w-[860px] mx-auto px-4 md:px-12">
+        <div className="pt-10 mb-2">
+          <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-ink">
+            Équipe
+          </h1>
+        </div>
+        <TeamsLocked />
+      </div>
+    )
+  }
+
   const data = await getParticipantWithTeam(params.participantId)
 
   if (!data) notFound()

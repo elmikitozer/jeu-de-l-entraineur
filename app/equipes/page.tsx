@@ -3,6 +3,7 @@ import { getAllParticipantsWithTeams } from '@/lib/queries'
 import type { ParticipantOverview, SlotEntry } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
 import { TEAM_COLORS } from '@/lib/flags'
+import TeamsLocked from '@/components/TeamsLocked'
 
 export const revalidate = 60
 
@@ -193,6 +194,19 @@ function ParticipantCard({ participant }: { participant: ParticipantOverview }) 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function EquipesPage() {
+  if (process.env.TEAMS_VISIBLE !== 'true') {
+    return (
+      <div className="max-w-[860px] mx-auto px-4 md:px-12">
+        <div className="pt-10 mb-2">
+          <h1 className="font-display font-bold uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-ink">
+            Toutes les<br />équipes
+          </h1>
+        </div>
+        <TeamsLocked />
+      </div>
+    )
+  }
+
   const participants = await getAllParticipantsWithTeams()
   const count = participants.length
 

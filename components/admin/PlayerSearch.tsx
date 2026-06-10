@@ -15,8 +15,14 @@ interface Props {
 const POSITION_LABEL: Record<Position, string> = {
   GK: 'gardien',
   DEF: 'défenseur',
-  MID: 'milieu',
-  FWD: 'attaquant',
+  MID: 'milieu / attaquant',
+  FWD: 'attaquant / milieu',
+}
+
+// MID et FWD sont interchangeables — les postes FIFA ne sont pas toujours fidèles
+function positionAllowed(playerPos: Position, slotPos: Position): boolean {
+  if (slotPos === 'GK' || slotPos === 'DEF') return playerPos === slotPos
+  return playerPos === 'MID' || playerPos === 'FWD'
 }
 
 export function PlayerSearch({ slot, position, players, value, onChange, disabledIds }: Props) {
@@ -26,7 +32,7 @@ export function PlayerSearch({ slot, position, players, value, onChange, disable
 
   const filtered = players.filter(
     (p) =>
-      p.position === position &&
+      positionAllowed(p.position, position) &&
       p.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -104,7 +110,12 @@ export function PlayerSearch({ slot, position, players, value, onChange, disable
                   }`}
                 >
                   <span className="text-white truncate">{p.name}</span>
-                  <span className="text-gray-400 text-xs shrink-0">{p.nationality_code}</span>
+                  <span className="flex items-center gap-1 shrink-0">
+                    {p.position !== position && (
+                      <span className="text-[10px] text-yellow-500 bg-yellow-500/10 px-1 rounded">{p.position}</span>
+                    )}
+                    <span className="text-gray-400 text-xs">{p.nationality_code}</span>
+                  </span>
                 </button>
               )
             })

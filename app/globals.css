@@ -2,76 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens — Electric Green ───────────────────────────────── */
+/* ── Design tokens — Pelouse Nocturne ─────────────────────────────── */
 :root {
-  --c-bg: #00B25C;
-  --c-bg-gradient: linear-gradient(160deg, #00B25C 0%, #00BC8B 55%, #00B6C2 100%);
-  --c-card: #FFFFFF;
-  --c-card-overlay: rgba(255, 255, 255, 0.14);
-  --c-card-border: rgba(255, 255, 255, 0.35);
-  --c-ink: #07261B;
-  --c-sub: #5E7A6E;
-  --c-line: #E4EFE8;
-  --c-green: #00B25C;
-  --c-blue: #00BC8B;
-  --c-red: #E0245E;
-  --c-lime: #C8F051;
-  --c-positive: #00B25C;
-  --c-negative: #E0245E;
-  --c-live: #E0245E;
+  --c-bg: #0D4A30;
+  --c-bg-gradient: linear-gradient(178deg, #0D4A30 0%, #093623 55%, #052315 100%);
+  --c-card: rgba(4, 26, 17, 0.55);
+  --c-card-overlay: rgba(4, 26, 17, 0.50);
+  --c-card-border: rgba(255, 255, 255, 0.12);
+  --c-ink: #E8F5EF;
+  --c-sub: rgba(255, 255, 255, 0.50);
+  --c-line: rgba(255, 255, 255, 0.10);
+  --c-green: #22C55E;
+  --c-blue: #2ED4A8;
+  --c-red: #EF4444;
+  --c-lime: #C8F542;
+  --c-positive: #22C55E;
+  --c-negative: #EF4444;
+  --c-live: #EF4444;
   /* Aliases tailwind */
-  --c-delta-pos: #00B25C;
-  --c-delta-neg: #E0245E;
-  --c-zebra: #F2FAF5;
-  --c-podium1: #00B25C;
-  --c-podium2: #00BC8B;
-  --c-podium3: #E0245E;
+  --c-delta-pos: #22C55E;
+  --c-delta-neg: #EF4444;
+  --c-zebra: rgba(255, 255, 255, 0.04);
+  --c-podium1: #C8F542;
+  --c-podium2: rgba(255, 255, 255, 0.80);
+  --c-podium3: rgba(255, 255, 255, 0.55);
   /* Terrain */
   --pitch-a: #1E5C34;
   --pitch-b: #195029;
   --pitch-line: rgba(255, 255, 255, 0.40);
-  --av-l: 62%;
+  /* Terrain background vars (responsive via @media) */
+  --pitch-stripe: 118px;
+  --pitch-circle-size: 1100px;
+  --pitch-circle-top: 80px;
+  /* Avatar */
+  --av-bg-l: 0.60;
+  --av-bg-c: 0.12;
+  --av-fg-l: 0.96;
+  --av-fg-c: 0.03;
+}
+
+/* ── Pitch vars mobile ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  :root {
+    --pitch-stripe: 56px;
+    --pitch-circle-size: 540px;
+    --pitch-circle-top: 130px;
+  }
 }
 
 /* ── Dark mode ─────────────────────────────────────────────────────── */
 .dark {
-  --c-bg: #003D20;
-  --c-bg-gradient: linear-gradient(160deg, #005C30 0%, #006B4F 55%, #006B6B 100%);
-  --c-card: rgba(0, 0, 0, 0.30);
-  --c-card-overlay: rgba(0, 0, 0, 0.25);
-  --c-card-border: rgba(255, 255, 255, 0.15);
-  --c-ink: #E8F5EF;
-  --c-sub: #7AADA0;
-  --c-line: rgba(255, 255, 255, 0.12);
+  --c-bg: #052315;
+  --c-bg-gradient: linear-gradient(178deg, #0A3D27 0%, #052315 55%, #020D08 100%);
+  --c-card: rgba(2, 16, 10, 0.65);
+  --c-card-overlay: rgba(2, 16, 10, 0.60);
+  --c-card-border: rgba(255, 255, 255, 0.10);
+  --c-ink: #E0F2EC;
+  --c-sub: rgba(255, 255, 255, 0.45);
+  --c-line: rgba(255, 255, 255, 0.08);
   --c-green: #1EC97A;
   --c-blue: #2ED4A8;
   --c-red: #F0606C;
   --c-lime: #D4F56A;
   --c-delta-pos: #1EC97A;
   --c-delta-neg: #F0606C;
-  --c-zebra: rgba(0, 0, 0, 0.15);
-  --av-l: 68%;
+  --c-zebra: rgba(255, 255, 255, 0.03);
 }
 
 /* ── Tokens nav ────────────────────────────────────────────────────── */
 :root {
-  --c-nav-bg: rgba(0, 140, 70, 0.92);
+  --c-nav-bg: rgba(9, 54, 35, 0.94);
   --c-nav-text: rgba(255, 255, 255, 0.85);
   --c-nav-text-strong: #ffffff;
-  --c-nav-border: rgba(255, 255, 255, 0.2);
+  --c-nav-border: rgba(255, 255, 255, 0.12);
   --c-nav-active-bg: rgba(255, 255, 255, 0.95);
-  --c-nav-active-text: var(--c-ink);
+  --c-nav-active-text: #07261B;
   --c-nav-dot: var(--c-lime);
 }
 
 .dark {
-  --c-nav-bg: rgba(255, 255, 255, 0.92);
-  --c-nav-text: #07261B;
-  --c-nav-text-strong: #07261B;
-  --c-nav-border: rgba(0, 0, 0, 0.08);
-  --c-nav-active-bg: var(--c-ink);
+  --c-nav-bg: rgba(5, 35, 21, 0.96);
+  --c-nav-text: rgba(255, 255, 255, 0.80);
+  --c-nav-text-strong: #ffffff;
+  --c-nav-border: rgba(255, 255, 255, 0.08);
+  --c-nav-active-bg: rgba(255, 255, 255, 0.12);
   --c-nav-active-text: #ffffff;
-  --c-nav-dot: var(--c-green);
+  --c-nav-dot: var(--c-lime);
 }
 
 /* ── Base ──────────────────────────────────────────────────────────── */
@@ -85,7 +101,7 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
 
-/* ── Animations ────────────────────────────────────────────────────── */
+/* ── Keyframes ─────────────────────────────────────────────────────── */
 @keyframes menu-open {
   from { max-height: 0;     opacity: 0; }
   to   { max-height: 300px; opacity: 1; }
@@ -93,6 +109,11 @@ body {
 .animate-menu-open {
   animation: menu-open 200ms ease-out forwards;
   overflow: hidden;
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
 }
 
 @layer utilities {

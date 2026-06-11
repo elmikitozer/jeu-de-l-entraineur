@@ -1,3 +1,6 @@
+'use client'
+
+import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import type { Match } from '@/lib/types'
 import { TEAM_NAME_FR, FIFA_CODE } from '@/lib/flags'
 import Flag from '@/components/Flag'
@@ -13,28 +16,50 @@ export default function MatchCard({ match }: Props) {
   const dateObj = new Date(match.date)
   const dateStr = format(dateObj, 'd MMM', { locale: fr })
   const timeStr = format(dateObj, 'HH:mm')
+  const reduced = useReducedMotion()
+
+  const homeFlagCtrl = useAnimation()
+  const awayFlagCtrl = useAnimation()
+
+  const handleHoverStart = () => {
+    if (reduced) return
+    homeFlagCtrl.start({ scale: [1, 1.15, 1], transition: { duration: 0.5, ease: 'easeInOut' } })
+    awayFlagCtrl.start({ scale: [1, 1.15, 1], transition: { duration: 0.5, ease: 'easeInOut', delay: 0.06 } })
+  }
 
   return (
-    <div
-      className="flex-1 min-w-0 flex flex-col gap-2.5 p-3.5 rounded-xl"
+    <motion.div
+      className="flex-1 min-w-0 flex flex-col gap-2.5 cursor-pointer"
       style={{
-        background: 'var(--c-card-overlay)',
+        background: 'rgba(4, 26, 17, 0.55)',
         border: '1px solid var(--c-card-border)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        color: '#ffffff',
         borderRadius: 14,
+        padding: '13px 15px',
+        color: '#ffffff',
+      }}
+      whileHover={
+        reduced
+          ? {}
+          : {
+              y: -4,
+              boxShadow: '0 0 0 1px rgba(200,245,66,0.40)',
+            }
+      }
+      onHoverStart={handleHoverStart}
+      transition={{
+        y: { type: 'spring', stiffness: 300, damping: 25 },
+        boxShadow: { duration: 0.2 },
       }}
     >
       {/* Ligne 1 : phase + date */}
       <div className="flex justify-between text-[11px]" style={{ opacity: 0.85 }}>
-        <span className="font-bold tracking-[0.1em] uppercase">
+        <span className="font-bold tracking-[0.1em] uppercase font-body">
           {match.stage ?? 'Groupe'}
         </span>
-        <span>{dateStr}</span>
+        <span className="font-body">{dateStr}</span>
       </div>
 
-      {/* Ligne 2 : équipes + heure pill lime */}
+      {/* Ligne 2 : équipes + heure */}
       <div className="flex items-center justify-center gap-2.5">
         <div className="flex items-center justify-end gap-1.5 flex-1 min-w-0">
           <span className="block md:hidden font-display font-bold italic text-[20px] text-right truncate">
@@ -46,15 +71,17 @@ export default function MatchCard({ match }: Props) {
           >
             {FIFA_CODE[match.home_team] ?? match.home_team.slice(0, 3).toUpperCase()}
           </span>
-          <Flag teamName={match.home_team} size="24x18" />
+          <motion.span animate={homeFlagCtrl} style={{ display: 'inline-flex' }}>
+            <Flag teamName={match.home_team} size="24x18" />
+          </motion.span>
         </div>
 
-        {/* Heure en pill lime */}
+        {/* Heure */}
         <span
           className="font-body font-bold whitespace-nowrap flex-shrink-0 text-[12px]"
           style={{
             background: 'var(--c-lime)',
-            color: 'var(--c-ink)',
+            color: '#07261B',
             borderRadius: 999,
             padding: '2px 9px',
           }}
@@ -63,7 +90,9 @@ export default function MatchCard({ match }: Props) {
         </span>
 
         <div className="flex items-center justify-start gap-1.5 flex-1 min-w-0">
-          <Flag teamName={match.away_team} size="24x18" />
+          <motion.span animate={awayFlagCtrl} style={{ display: 'inline-flex' }}>
+            <Flag teamName={match.away_team} size="24x18" />
+          </motion.span>
           <span className="block md:hidden font-display font-bold italic text-[20px] text-left truncate">
             {TEAM_NAME_FR[match.away_team] ?? match.away_team}
           </span>
@@ -79,13 +108,13 @@ export default function MatchCard({ match }: Props) {
       {/* Stade */}
       {match.venue && (
         <div
-          className="text-[10.5px] text-center line-clamp-2 break-words"
-          style={{ opacity: 0.8 }}
+          className="text-[10.5px] text-center font-body line-clamp-2 break-words"
+          style={{ opacity: 0.7 }}
           title={match.venue}
         >
           {match.venue}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

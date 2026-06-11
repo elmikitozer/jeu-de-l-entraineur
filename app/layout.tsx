@@ -5,6 +5,7 @@ import DarkModeToggle from '@/components/DarkModeToggle';
 import FooterUpdatedAt from '@/components/FooterUpdatedAt';
 import MobileMenu from '@/components/MobileMenu';
 import NavLinks from '@/components/NavLinks';
+import PulseDot from '@/components/PulseDot';
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
@@ -82,10 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="ml-auto flex items-center gap-2">
               {/* Dot + "Mise à jour" */}
               <span className="hidden md:flex items-center gap-2">
-                <span
-                  className="w-2 h-2 rounded-full animate-pulse flex-shrink-0"
-                  style={{ background: 'var(--c-nav-dot)' }}
-                />
+                <PulseDot />
                 <FooterUpdatedAt />
               </span>
               <DarkModeToggle />

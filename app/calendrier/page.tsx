@@ -123,7 +123,7 @@ export default async function CalendrierPage() {
       <RealtimeRefresh />
       <div className="pt-10 mb-10">
         <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
-          Calendrier
+          Matchs
         </h1>
         <p className="mt-2 text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
           Coupe du Monde 2026 · {matches.length} matchs

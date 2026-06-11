@@ -146,7 +146,7 @@ export default async function LeaderboardPage() {
                 className="text-[12.5px] font-semibold font-body ml-auto"
                 style={{ color: 'var(--c-sub)' }}
               >
-                Calendrier complet →
+                Tous les matchs →
               </Link>
             </div>
             <div className="flex flex-col sm:flex-row gap-3.5">

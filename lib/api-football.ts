@@ -102,12 +102,16 @@ interface AF_PlayersResponse {
 
 // ── Client HTTP ──────────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://api-football-v1.p.rapidapi.com/v3'
+// Accès DIRECT API-Sports (et non RapidAPI) : c'est l'abonnement Pro de l'utilisateur
+// (dashboard.api-football.com). Header d'auth : x-apisports-key.
+// Le host v3.football.api-sports.io implique déjà /v3, donc les chemins restent
+// /fixtures, /fixtures/players, /status sans préfixe.
+const BASE_URL = process.env.API_FOOTBALL_URL ?? 'https://v3.football.api-sports.io'
 
 function getHeaders(): HeadersInit {
   return {
-    'x-rapidapi-key': process.env.RAPIDAPI_KEY ?? '',
-    'x-rapidapi-host': process.env.RAPIDAPI_HOST ?? 'api-football-v1.p.rapidapi.com',
+    // RAPIDAPI_KEY contient en réalité la clé directe API-Sports (nom historique).
+    'x-apisports-key': process.env.API_FOOTBALL_KEY ?? process.env.RAPIDAPI_KEY ?? '',
   }
 }
 

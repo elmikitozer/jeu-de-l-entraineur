@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { syncMatch } from '@/lib/sync-engine'
 
-// Fenêtre de rattrapage après le coup d'envoi (24h) : couvre les matchs ratés
-// (cron throttlé, erreur API, ambiguïté de fuseau sur la date stockée) restés
-// en 'scheduled' alors qu'ils sont déjà terminés.
+// Fenêtre live : 5 min avant le coup d'envoi → kickoff + 2h45.
+// Pendant cette fenêtre, le match est sondé à chaque minute (vrai temps réel).
+const LIVE_WINDOW_MS = 165 * 60 * 1000
+// Fenêtre de rattrapage : jusqu'à 24h après le coup d'envoi. AU-DELÀ de la
+// fenêtre live, le rattrapage est throttlé à 1h (comme le post-check) pour ne
+// pas brûler le quota API sur des matchs déjà terminés restés en 'scheduled'.
 const CATCHUP_WINDOW_MS = 24 * 60 * 60 * 1000
-// Délai de post-check : 1h entre chaque vérification
+// Délai de post-check / rattrapage throttlé : 1h entre chaque vérification
 const POST_CHECK_INTERVAL_MS = 60 * 60 * 1000
 // Nombre max de vérifications post-match
 const MAX_POST_CHECK_ATTEMPTS = 6
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
   for (const match of matches ?? []) {
     const kickoff = new Date(match.date as string)
     const fiveMinBefore = new Date(kickoff.getTime() - 5 * 60 * 1000)
+    const liveWindowEnd = new Date(kickoff.getTime() + LIVE_WINDOW_MS)
     const catchupEnd = new Date(kickoff.getTime() + CATCHUP_WINDOW_MS)
     const status = match.status as string
     const apiMatchId = match.api_match_id as number | null
@@ -51,26 +55,29 @@ export async function GET(request: NextRequest) {
     // Ignorer les matchs sans api_match_id (pas encore mappés)
     if (!apiMatchId) continue
 
+    // Throttle horaire partagé (rattrapage scheduled + post-check finished) :
+    // < MAX_ATTEMPTS et au moins 1h depuis le dernier sync.
+    const attempts = (match.sync_attempts as number) ?? 0
+    const lastVerified = match.last_verified_at
+      ? new Date(match.last_verified_at as string)
+      : null
+    const timeSinceLast = lastVerified ? now.getTime() - lastVerified.getTime() : Infinity
+    const hourlyDue = attempts < MAX_POST_CHECK_ATTEMPTS && timeSinceLast >= POST_CHECK_INTERVAL_MS
+
     if (status === 'scheduled') {
-      // De 5 min avant le coup d'envoi jusqu'à 24h après : couvre la fenêtre live
-      // ET le rattrapage des matchs déjà terminés mais jamais synchronisés.
-      if (now >= fiveMinBefore && now <= catchupEnd) {
+      if (now >= fiveMinBefore && now <= liveWindowEnd) {
+        // Fenêtre live → chaque minute (vrai temps réel)
+        toSync.push(match.id as string)
+      } else if (now > liveWindowEnd && now <= catchupEnd && hourlyDue) {
+        // Match raté resté 'scheduled' au-delà de sa fenêtre → rattrapage horaire
         toSync.push(match.id as string)
       }
     } else if (status === 'live') {
-      // Match en cours ou dépassé la fenêtre → sync (syncMatch déterminera si final)
+      // Match en cours → chaque minute (syncMatch déterminera si final)
       toSync.push(match.id as string)
     } else if (status === 'finished') {
-      // Post-check : < MAX_ATTEMPTS et au moins 1h depuis le dernier sync
-      const attempts = (match.sync_attempts as number) ?? 0
-      if (attempts >= MAX_POST_CHECK_ATTEMPTS) continue
-
-      const lastVerified = match.last_verified_at
-        ? new Date(match.last_verified_at as string)
-        : null
-
-      const timeSinceLast = lastVerified ? now.getTime() - lastVerified.getTime() : Infinity
-      if (timeSinceLast >= POST_CHECK_INTERVAL_MS) {
+      // Post-check horaire avec plafond d'essais
+      if (hourlyDue) {
         toSync.push(match.id as string)
       }
     }

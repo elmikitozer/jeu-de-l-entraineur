@@ -292,12 +292,14 @@ export async function getPlayerHistory(playerId: string): Promise<{ player: Play
 
 // ── getLiveMatches ────────────────────────────────────────────────────────────
 
+/** Matchs actuellement en cours (status='live'), peu importe leur date de coup d'envoi. */
 export async function getLiveMatches(): Promise<Match[]> {
   const supabase = getClient()
   const { data } = await supabase
     .from('matches')
     .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts')
     .eq('status', 'live')
+    .order('date', { ascending: true })
   return (data ?? []) as unknown as Match[]
 }
 
@@ -306,11 +308,12 @@ export async function getLiveMatches(): Promise<Match[]> {
 export async function getUpcomingMatches(limit = 5): Promise<Match[]> {
   const supabase = getClient()
   const now = new Date().toISOString()
+  // Uniquement les matchs à venir, non démarrés (les live ont leur propre bloc)
   const { data } = await supabase
     .from('matches')
     .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts')
     .gte('date', now)
-    .in('status', ['scheduled', 'live'])
+    .eq('status', 'scheduled')
     .order('date', { ascending: true })
     .limit(limit)
   return (data ?? []) as unknown as Match[]

@@ -1,16 +1,19 @@
 import Link from 'next/link'
-import { getLeaderboard, getUpcomingMatches } from '@/lib/queries'
+import { getLeaderboard, getUpcomingMatches, getLiveMatches } from '@/lib/queries'
 import PodiumCard from '@/components/PodiumCard'
 import MatchCard from '@/components/MatchCard'
+import LiveMatchCard from '@/components/LiveMatchCard'
 import PelouseBackground from '@/components/PelouseBackground'
 import LeaderboardTableAnimated from '@/components/LeaderboardTableAnimated'
+import RealtimeRefresh from '@/components/RealtimeRefresh'
 
 export const revalidate = 60
 
 export default async function LeaderboardPage() {
-  const [leaderboard, upcoming] = await Promise.all([
+  const [leaderboard, upcoming, live] = await Promise.all([
     getLeaderboard(),
     getUpcomingMatches(5),
+    getLiveMatches(),
   ])
 
   const top3 = leaderboard.slice(0, 3)
@@ -25,6 +28,7 @@ export default async function LeaderboardPage() {
   return (
     <>
       <PelouseBackground />
+      <RealtimeRefresh />
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-6 md:px-12 pb-16">
 
@@ -112,6 +116,22 @@ export default async function LeaderboardPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* ── Matchs en cours ── */}
+        {live.length > 0 && (
+          <div className="mt-9">
+            <div className="flex items-baseline gap-4 mb-3.5">
+              <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em]" style={{ color: '#EF4444' }}>
+                En ce moment
+              </h2>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3.5">
+              {live.map((match) => (
+                <LiveMatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── Prochains matchs ── */}

@@ -7,7 +7,13 @@ export default function FooterUpdatedAt() {
 
   useEffect(() => {
     const timer = setInterval(() => setMins((m) => m + 1), 60_000)
-    return () => clearInterval(timer)
+    // Reset à 0 quand Realtime signale une mise à jour
+    const onRealtime = () => setMins(0)
+    window.addEventListener('je:realtime', onRealtime)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('je:realtime', onRealtime)
+    }
   }, [])
 
   return (

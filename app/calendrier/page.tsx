@@ -2,6 +2,8 @@ import { getAllMatches } from '@/lib/queries'
 import type { Match } from '@/lib/types'
 import LiveBadge from '@/components/LiveBadge'
 import Flag from '@/components/Flag'
+import LocalTime from '@/components/LocalTime'
+import RealtimeRefresh from '@/components/RealtimeRefresh'
 import { TEAM_NAME_FR } from '@/lib/flags'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -67,11 +69,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function MatchTime({ date }: { date: string }) {
-  // Affiche HH:mm UTC — cohérent avec le stockage UTC du seed
+  // Affiche HH:mm dans le fuseau du navigateur (unifié avec l'accueil)
   return (
-    <span className="text-[12px] font-body font-semibold text-sub tabular-nums">
-      {date.slice(11, 16)}
-    </span>
+    <LocalTime
+      date={date}
+      className="text-[12px] font-body font-semibold text-sub tabular-nums"
+    />
   )
 }
 
@@ -117,6 +120,7 @@ export default async function CalendrierPage() {
 
   return (
     <div className="max-w-[860px] mx-auto px-4 md:px-12 pb-16">
+      <RealtimeRefresh />
       <div className="pt-10 mb-10">
         <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
           Calendrier

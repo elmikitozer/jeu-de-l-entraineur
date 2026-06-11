@@ -1,0 +1,57 @@
+name: Sync stats API-Football
+
+# Polling backend du moteur de sync.
+# API-Football n'a pas de webhook : on interroge l'endpoint /api/cron/sync-stats
+# qui décide lui-même quels matchs synchroniser (live / post-check).
+#
+# GitHub Actions ne garantit PAS l'exécution à la minute exacte (best-effort,
+# souvent throttlé à ~5 min sous charge). C'est suffisant : l'endpoint est
+# idempotent et API-Football ne rafraîchit ses données que toutes les 15s.
+
+on:
+  schedule:
+    # Toutes les minutes — la fenêtre horaire est filtrée dans le job (voir ci-dessous)
+    - cron: '* * * * *'
+  workflow_dispatch: {} # déclenchement manuel pour tester
+
+# Évite les exécutions concurrentes qui se chevauchent
+concurrency:
+  group: sync-stats
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fenêtre horaire (17h00 → 06h00 UTC uniquement)
+        id: window
+        run: |
+          HOUR=$(date -u +%H)
+          # Actif si heure >= 17 OU heure < 6 (couvre les fuseaux UTC-7 à UTC-4)
+          if [ "$HOUR" -ge 17 ] || [ "$HOUR" -lt 6 ]; then
+            echo "active=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "active=false" >> "$GITHUB_OUTPUT"
+            echo "Hors fenêtre (${HOUR}h UTC) — skip."
+          fi
+
+      - name: Appel sync-stats
+        if: steps.window.outputs.active == 'true'
+        env:
+          BASE_URL: ${{ secrets.VERCEL_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secrets VERCEL_URL et/ou CRON_SECRET manquants."
+            exit 1
+          fi
+          HTTP=$(curl -sS -w "%{http_code}" -o /tmp/resp.json \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${BASE_URL%/}/api/cron/sync-stats")
+          echo "HTTP $HTTP"
+          cat /tmp/resp.json || true
+          echo ""
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::sync-stats a répondu $HTTP"
+            exit 1
+          fi

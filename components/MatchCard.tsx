@@ -4,8 +4,7 @@ import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import type { Match } from '@/lib/types'
 import { TEAM_NAME_FR, FIFA_CODE } from '@/lib/flags'
 import Flag from '@/components/Flag'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import LocalTime from '@/components/LocalTime'
 
 interface Props {
   match: Match
@@ -13,9 +12,6 @@ interface Props {
 }
 
 export default function MatchCard({ match }: Props) {
-  const dateObj = new Date(match.date)
-  const dateStr = format(dateObj, 'd MMM', { locale: fr })
-  const timeStr = format(dateObj, 'HH:mm')
   const reduced = useReducedMotion()
 
   const homeFlagCtrl = useAnimation()
@@ -56,7 +52,7 @@ export default function MatchCard({ match }: Props) {
         <span className="font-bold tracking-[0.1em] uppercase font-body">
           {match.stage ?? 'Groupe'}
         </span>
-        <span className="font-body">{dateStr}</span>
+        <LocalTime date={match.date} mode="date" className="font-body" />
       </div>
 
       {/* Ligne 2 : équipes + heure */}
@@ -86,7 +82,7 @@ export default function MatchCard({ match }: Props) {
             padding: '2px 9px',
           }}
         >
-          {timeStr}
+          <LocalTime date={match.date} />
         </span>
 
         <div className="flex items-center justify-start gap-1.5 flex-1 min-w-0">

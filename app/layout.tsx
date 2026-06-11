@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Barlow_Condensed, Outfit } from 'next/font/google';
 import './globals.css';
-import DarkModeToggle from '@/components/DarkModeToggle';
+// import DarkModeToggle from '@/components/DarkModeToggle';
 import FooterUpdatedAt from '@/components/FooterUpdatedAt';
 import MobileMenu from '@/components/MobileMenu';
 import NavLinks from '@/components/NavLinks';
@@ -44,12 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
         />
-        {/* Restaure dark mode avant hydration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
-          }}
-        />
       </head>
       <body
         className="font-body antialiased text-ink min-h-screen flex flex-col"
@@ -86,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <PulseDot />
                 <FooterUpdatedAt />
               </span>
-              <DarkModeToggle />
+              {/* <DarkModeToggle /> */}
               <MobileMenu />
             </div>
           </nav>

@@ -261,7 +261,10 @@ function buildStatsFromEvents(fixture: AF_Fixture): RawPlayerStats[] {
  * Utilise le endpoint live — retourne [] si le match n'est pas en cours.
  */
 export async function fetchLiveMatchStats(apiMatchId: number): Promise<RawPlayerStats[]> {
-  const data = await apiFetch<AF_FixtureResponse>(`/fixtures?id=${apiMatchId}&live=all`)
+  // ⚠️ NE PAS utiliser `&live=all` avec `id=` : combinaison invalide → HTTP 404.
+  // `/fixtures?id=X` renvoie le fixture complet (events + statut) qu'il soit en
+  // cours ou terminé, ce qui suffit pour buildStatsFromEvents.
+  const data = await apiFetch<AF_FixtureResponse>(`/fixtures?id=${apiMatchId}`)
   const fixture = data.response?.[0]
   if (!fixture) return []
   return buildStatsFromEvents(fixture)

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { syncMatch } from '@/lib/sync-engine'
 
-// Durée de fenêtre live en ms (2h45)
-const LIVE_WINDOW_MS = 165 * 60 * 1000
+// Fenêtre de rattrapage après le coup d'envoi (24h) : couvre les matchs ratés
+// (cron throttlé, erreur API, ambiguïté de fuseau sur la date stockée) restés
+// en 'scheduled' alors qu'ils sont déjà terminés.
+const CATCHUP_WINDOW_MS = 24 * 60 * 60 * 1000
 // Délai de post-check : 1h entre chaque vérification
 const POST_CHECK_INTERVAL_MS = 60 * 60 * 1000
 // Nombre max de vérifications post-match
@@ -41,8 +43,8 @@ export async function GET(request: NextRequest) {
 
   for (const match of matches ?? []) {
     const kickoff = new Date(match.date as string)
-    const liveWindowEnd = new Date(kickoff.getTime() + LIVE_WINDOW_MS)
     const fiveMinBefore = new Date(kickoff.getTime() - 5 * 60 * 1000)
+    const catchupEnd = new Date(kickoff.getTime() + CATCHUP_WINDOW_MS)
     const status = match.status as string
     const apiMatchId = match.api_match_id as number | null
 
@@ -50,8 +52,9 @@ export async function GET(request: NextRequest) {
     if (!apiMatchId) continue
 
     if (status === 'scheduled') {
-      // Match qui démarre dans les 5 prochaines minutes → activer le live
-      if (now >= fiveMinBefore && now <= liveWindowEnd) {
+      // De 5 min avant le coup d'envoi jusqu'à 24h après : couvre la fenêtre live
+      // ET le rattrapage des matchs déjà terminés mais jamais synchronisés.
+      if (now >= fiveMinBefore && now <= catchupEnd) {
         toSync.push(match.id as string)
       }
     } else if (status === 'live') {

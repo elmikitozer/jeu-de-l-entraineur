@@ -188,11 +188,12 @@ export function getCountryCode(teamName: string): string | null {
   return code
 }
 
-/** Retourne l'URL flagcdn.com pour un nom d'équipe, ou null si inconnu ou sans drapeau. */
-export function getFlagUrl(teamName: string, size: '24x18' | '40x30' | '16x12' = '24x18'): string | null {
+/** Retourne l'URL flagcdn.com (SVG, résolution infinie) pour un nom d'équipe. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getFlagUrl(teamName: string, size?: '24x18' | '40x30' | '16x12'): string | null {
   const code = getCountryCode(teamName)
   if (!code) return null
-  return `https://flagcdn.com/${size}/${code}.png`
+  return `https://flagcdn.com/${code}.svg`
 }
 
 /** Retourne true si le nom est explicitement référencé dans FLAGS (même sans drapeau comme TBD). */

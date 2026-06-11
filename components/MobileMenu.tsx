@@ -53,13 +53,22 @@ export default function MobileMenu() {
           top-full = 100% de la hauteur du header = juste sous la TriStripe
           left-0 right-0 = pleine largeur viewport */}
       {open && (
-        <div className="absolute left-0 right-0 top-full z-40 bg-card border-b border-line shadow-xl animate-menu-open">
+        <div
+          className="absolute left-0 right-0 top-full z-40 shadow-xl animate-menu-open"
+          style={{
+            background: 'rgba(7, 40, 24, 0.98)',
+            borderBottom: '1px solid var(--c-nav-border)',
+          }}
+        >
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className="flex items-center px-6 py-4 text-[16px] font-semibold font-body text-ink hover:bg-zebra transition-colors border-b border-line last:border-b-0"
+              className="flex items-center px-6 py-4 text-[16px] font-semibold font-body transition-colors border-b last:border-b-0"
+              style={{ color: 'var(--c-nav-text-strong)', borderColor: 'rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               {label}
             </Link>

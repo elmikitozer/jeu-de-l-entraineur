@@ -355,6 +355,26 @@ export async function fetchFinalMatchStats(apiMatchId: number): Promise<RawPlaye
   return result
 }
 
+// ID de la ligue Coupe du Monde dans API-Football.
+const WORLD_CUP_LEAGUE_ID = 1
+
+/**
+ * Renvoie l'ensemble des api_match_id actuellement EN COURS pour la CdM.
+ * Source de vérité robuste pour la détection live : indépendante des horaires
+ * stockés en base (qui peuvent être faux). Une seule requête.
+ */
+export async function fetchLiveFixtureIds(): Promise<Set<number>> {
+  const data = await apiFetch<AF_FixtureResponse>('/fixtures?live=all')
+  const ids = new Set<number>()
+  for (const fx of data.response ?? []) {
+    const league = (fx as unknown as { league?: { id?: number } }).league
+    if (league?.id === WORLD_CUP_LEAGUE_ID) {
+      ids.add(fx.fixture.id)
+    }
+  }
+  return ids
+}
+
 /**
  * Score et statut actuel d'un match (pour mise à jour de la table matches).
  */

@@ -9,20 +9,30 @@
  * (composant LocalTime / LocalDate) pour garantir l'heure du visiteur.
  */
 
+/**
+ * Parse une date de match en la traitant comme UTC.
+ * Les dates sont stockées en colonne TIMESTAMP (naïves, sans fuseau) mais
+ * représentent l'heure UTC. Sans 'Z', `new Date()` les interpréterait comme
+ * heure locale → décalage. On ajoute 'Z' si aucun fuseau n'est présent.
+ */
+export function parseMatchDateUTC(date: string | Date): Date {
+  if (date instanceof Date) return date
+  const hasTz = /[zZ]$|[+-]\d\d:?\d\d$/.test(date)
+  return new Date(hasTz ? date : date + 'Z')
+}
+
 /** "HH:mm" dans le fuseau du navigateur. Ex: "21:00". */
 export function formatMatchTime(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
   return new Intl.DateTimeFormat('fr-FR', {
     hour: '2-digit',
     minute: '2-digit',
-  }).format(d)
+  }).format(parseMatchDateUTC(date))
 }
 
 /** Date courte localisée. Ex: "11 juin". */
 export function formatMatchDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
   return new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',
     month: 'short',
-  }).format(d)
+  }).format(parseMatchDateUTC(date))
 }

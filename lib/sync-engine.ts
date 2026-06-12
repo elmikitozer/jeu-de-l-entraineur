@@ -14,6 +14,7 @@ import {
   type RawPlayerStats,
 } from './api-football'
 import type { Position, PointsBreakdown, PlayerStats } from './types'
+import { parseMatchDateUTC } from './datetime'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   // ── 2. Déterminer le mode ─────────────────────────────────────────────────
 
   const now = new Date()
-  const kickoff = new Date(matchRow.date as string)
+  const kickoff = parseMatchDateUTC(matchRow.date as string)
   const liveWindowEnd = new Date(kickoff.getTime() + LIVE_WINDOW_MS)
   const currentStatus = matchRow.status as string
 

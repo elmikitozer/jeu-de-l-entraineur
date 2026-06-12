@@ -141,14 +141,30 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   const apiSaysFinished = FINISHED_STATUSES.has(fixtureResult.status)
 
   // ── 4. Joueurs de notre DB avec api_football_id ───────────────────────────
+  // ⚠️ PostgREST plafonne chaque select à 1000 lignes. Le pool dépasse ce seuil
+  // (>1200 joueurs mappés) → il FAUT paginer, sinon les joueurs au-delà de la
+  // 1000e ligne sont invisibles au sync et leurs stats/points ne sont jamais
+  // enregistrés (buts, cartons, etc. perdus silencieusement).
 
-  const { data: ourPlayers } = await supabase
-    .from('players')
-    .select('id, position, api_football_id')
-    .not('api_football_id', 'is', null)
+  const PAGE = 1000
+  const ourPlayers: Array<{ id: string; position: string; api_football_id: number }> = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('players')
+      .select('id, position, api_football_id')
+      .not('api_football_id', 'is', null)
+      .range(from, from + PAGE - 1)
+    if (error) {
+      errors.push(`players page ${from}: ${error.message}`)
+      break
+    }
+    if (!data || data.length === 0) break
+    ourPlayers.push(...(data as unknown as typeof ourPlayers))
+    if (data.length < PAGE) break
+  }
 
   const apiIdToPlayer = new Map<number, { id: string; position: string }>(
-    (ourPlayers ?? []).map((p) => [
+    ourPlayers.map((p) => [
       p.api_football_id as number,
       { id: p.id as string, position: p.position as string },
     ])

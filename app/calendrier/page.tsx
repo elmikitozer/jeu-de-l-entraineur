@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getAllMatches } from '@/lib/queries'
 import type { Match } from '@/lib/types'
 import LiveBadge from '@/components/LiveBadge'
@@ -160,10 +161,11 @@ export default async function CalendrierPage() {
                   const isLive = match.status === 'live'
 
                   return (
-                    <div
+                    <Link
                       key={match.id}
+                      href={`/matches/${match.id}`}
                       className={[
-                        'flex flex-col px-4 py-3 gap-1',
+                        'flex flex-col px-4 py-3 gap-1 transition-colors hover:bg-white/[0.06]',
                         isLive ? 'bg-red/5' : idx % 2 === 0 ? 'bg-card' : 'bg-zebra',
                         !isLast ? 'border-b border-line' : '',
                       ].join(' ')}
@@ -195,7 +197,7 @@ export default async function CalendrierPage() {
                           </span>
                         </div>
                       )}
-                    </div>
+                    </Link>
                   )
                 })}
               </div>

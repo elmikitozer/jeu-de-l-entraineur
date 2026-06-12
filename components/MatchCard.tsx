@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion, useAnimation, useReducedMotion } from 'framer-motion'
 import type { Match } from '@/lib/types'
 import { TEAM_NAME_FR, FIFA_CODE } from '@/lib/flags'
@@ -24,6 +25,7 @@ export default function MatchCard({ match }: Props) {
   }
 
   return (
+    <Link href={`/matches/${match.id}`} className="flex-1 min-w-0 flex">
     <motion.div
       className="flex-1 min-w-0 flex flex-col gap-2.5 cursor-pointer"
       style={{
@@ -112,5 +114,6 @@ export default function MatchCard({ match }: Props) {
         </div>
       )}
     </motion.div>
+    </Link>
   )
 }

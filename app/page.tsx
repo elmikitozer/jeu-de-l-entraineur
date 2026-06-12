@@ -128,7 +128,9 @@ export default async function LeaderboardPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3.5">
               {live.map((match) => (
-                <LiveMatchCard key={match.id} match={match} />
+                <Link key={match.id} href={`/matches/${match.id}`} className="flex-1 min-w-0 flex">
+                  <LiveMatchCard match={match} />
+                </Link>
               ))}
             </div>
           </div>

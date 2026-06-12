@@ -4,13 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { MatchLineupPlayer } from '@/lib/queries'
-import { TEAM_NAME_FR } from '@/lib/flags'
+import { TEAM_NAME_FR, getCountryCode } from '@/lib/flags'
 import Avatar from '@/components/Avatar'
 import Flag from '@/components/Flag'
 
 interface Props {
   team: string
   players: MatchLineupPlayer[]
+  matchId: string
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ function PlayerRow({ p, index }: { p: MatchLineupPlayer; index: number }) {
       transition={reduced ? { duration: 0 } : { duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
     >
       <Link
-        href={`/player/${p.id}`}
+        href={`/players/${p.id}`}
         className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-zebra transition-colors"
       >
         <Avatar name={p.name} size={34} />
@@ -65,24 +66,41 @@ function PlayerRow({ p, index }: { p: MatchLineupPlayer; index: number }) {
   )
 }
 
-export default function LineupCard({ team, players }: Props) {
+export default function LineupCard({ team, players, matchId }: Props) {
   const [open, setOpen] = useState(false)
   const played = players.filter((p) => p.played)
 
   return (
     <div className="bg-card border border-line rounded-2xl overflow-hidden">
-      {/* En-tête (cliquable sur mobile pour déplier) */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-4 py-3.5 border-b border-line text-left md:cursor-default"
-      >
-        <Flag teamName={team} size="24x18" className="flex-shrink-0" />
-        <span className="font-display font-bold italic uppercase text-[18px] text-white flex-1 min-w-0 truncate">
-          {TEAM_NAME_FR[team] ?? team}
-        </span>
-        <span className="text-[11px] font-body text-sub whitespace-nowrap">{played.length} joueurs</span>
-        <span className="text-sub text-[12px] md:hidden">{open ? '▲' : '▼'}</span>
-      </button>
+      {/* En-tête : lien vers la nation + toggle mobile pour déplier */}
+      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-line">
+        {(() => {
+          const code = getCountryCode(team)
+          const content = (
+            <>
+              <Flag teamName={team} size="24x18" className="flex-shrink-0" />
+              <span className="font-display font-bold italic uppercase text-[18px] text-white truncate group-hover:text-[color:var(--c-lime)] transition-colors">
+                {TEAM_NAME_FR[team] ?? team}
+              </span>
+            </>
+          )
+          return code ? (
+            <Link href={`/teams/${code}?from=/matches/${matchId}`} className="group flex items-center gap-2.5 flex-1 min-w-0">
+              {content}
+            </Link>
+          ) : (
+            <span className="flex items-center gap-2.5 flex-1 min-w-0">{content}</span>
+          )
+        })()}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 md:cursor-default"
+          aria-label={open ? 'Replier' : 'Déplier'}
+        >
+          <span className="text-[11px] font-body text-sub whitespace-nowrap">{played.length} joueurs</span>
+          <span className="text-sub text-[12px] md:hidden">{open ? '▲' : '▼'}</span>
+        </button>
+      </div>
 
       {/* Liste joueurs */}
       <div className={`${open ? 'block' : 'hidden'} md:block p-1.5`}>

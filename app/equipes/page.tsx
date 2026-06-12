@@ -156,7 +156,7 @@ function ParticipantCard({ participant }: { participant: ParticipantOverview }) 
 
   return (
     <Link
-      href={`/team/${id}`}
+      href={`/equipes/${id}`}
       className="block bg-card border border-line rounded-2xl overflow-hidden hover:shadow-xl hover:border-ink transition-all duration-200 group"
     >
       {/* Header */}

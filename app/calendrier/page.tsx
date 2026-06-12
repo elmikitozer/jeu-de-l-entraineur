@@ -170,23 +170,26 @@ export default async function CalendrierPage() {
                         !isLast ? 'border-b border-line' : '',
                       ].join(' ')}
                     >
-                      {/* Ligne 1 : équipes + score */}
+                      {/* Ligne 1 : équipes + score (le score reste seul au centre
+                          pour rester aligné verticalement avec les deux équipes) */}
                       <div className="flex items-center gap-3">
                         <TeamCell name={match.home_team} align="right" />
 
-                        <div className="flex flex-col items-center gap-1 flex-shrink-0 w-[80px] md:w-[96px]">
+                        <div className="flex items-center justify-center flex-shrink-0 min-w-[60px] md:min-w-[76px]">
                           <ScoreDisplay match={match} />
-                          <div className="flex items-center gap-1">
-                            <StageBadge stage={match.stage} />
-                            {isLive && <StatusBadge status="live" />}
-                            {match.status === 'finished' && <StatusBadge status="finished" />}
-                          </div>
                         </div>
 
                         <TeamCell name={match.away_team} align="left" />
                       </div>
 
-                      {/* Ligne 2 : stade */}
+                      {/* Ligne 2 : badges phase + statut, centrés sur toute la largeur */}
+                      <div className="flex items-center justify-center gap-1.5">
+                        <StageBadge stage={match.stage} />
+                        {isLive && <StatusBadge status="live" />}
+                        {match.status === 'finished' && <StatusBadge status="finished" />}
+                      </div>
+
+                      {/* Ligne 3 : stade */}
                       {match.venue && (
                         <div className="text-center">
                           <span

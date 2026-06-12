@@ -10,7 +10,7 @@ import TeamsLocked from '@/components/TeamsLocked'
 export const revalidate = 60
 
 interface Props {
-  params: { participantId: string }
+  params: { id: string }
 }
 
 export default async function TeamPage({ params }: Props) {
@@ -27,7 +27,7 @@ export default async function TeamPage({ params }: Props) {
     )
   }
 
-  const data = await getParticipantWithTeam(params.participantId)
+  const data = await getParticipantWithTeam(params.id)
 
   if (!data) notFound()
 

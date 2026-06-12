@@ -1,18 +1,27 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { signAdminToken, ADMIN_TOKEN_MAX_AGE } from '@/lib/admin-auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 async function loginAction(formData: FormData) {
   'use server'
+
+  // Anti-brute-force : 5 tentatives / 5 min par IP.
+  const ip = clientIp(await headers())
+  if (!rateLimit(`admin-login:${ip}`, 5, 5 * 60 * 1000)) {
+    redirect('/admin/login?error=rate')
+  }
+
   const password = formData.get('password') as string
   const adminPassword = process.env.ADMIN_PASSWORD
 
   if (password && adminPassword && password === adminPassword) {
     const cookieStore = await cookies()
-    cookieStore.set('admin_token', password, {
+    cookieStore.set('admin_token', await signAdminToken(password), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: ADMIN_TOKEN_MAX_AGE,
       path: '/',
     })
     redirect('/admin')
@@ -28,6 +37,7 @@ interface Props {
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams
   const hasError = params.error === '1'
+  const rateLimited = params.error === 'rate'
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -41,6 +51,12 @@ export default async function LoginPage({ searchParams }: Props) {
           {hasError && (
             <div className="bg-red-900/30 border border-red-700 text-red-400 text-sm rounded px-3 py-2 mb-4">
               Mot de passe incorrect.
+            </div>
+          )}
+
+          {rateLimited && (
+            <div className="bg-red-900/30 border border-red-700 text-red-400 text-sm rounded px-3 py-2 mb-4">
+              Trop de tentatives. Réessaie dans quelques minutes.
             </div>
           )}
 

@@ -83,7 +83,7 @@ export default async function LeaderboardPage() {
                 {/* Mobile : colonne, ordre 1-2-3 */}
                 <div className="flex flex-col gap-4 md:hidden">
                   {[top3[0], top3[1], top3[2]].filter(Boolean).map((e, i) => (
-                    <Link key={e.id} href={`/team/${e.id}`}>
+                    <Link key={e.id} href={`/equipes/${e.id}`}>
                       <PodiumCard entry={e} place={([1, 2, 3] as const)[i]} />
                     </Link>
                   ))}
@@ -91,17 +91,17 @@ export default async function LeaderboardPage() {
                 {/* Desktop : 2-1-3 */}
                 <div className="hidden md:flex gap-4 items-stretch">
                   {top3[1] && (
-                    <Link href={`/team/${top3[1].id}`} style={{ flex: 1 }}>
+                    <Link href={`/equipes/${top3[1].id}`} style={{ flex: 1 }}>
                       <PodiumCard entry={top3[1]} place={2} />
                     </Link>
                   )}
                   {top3[0] && (
-                    <Link href={`/team/${top3[0].id}`} style={{ flex: 1.15 }}>
+                    <Link href={`/equipes/${top3[0].id}`} style={{ flex: 1.15 }}>
                       <PodiumCard entry={top3[0]} place={1} />
                     </Link>
                   )}
                   {top3[2] && (
-                    <Link href={`/team/${top3[2].id}`} style={{ flex: 1 }}>
+                    <Link href={`/equipes/${top3[2].id}`} style={{ flex: 1 }}>
                       <PodiumCard entry={top3[2]} place={3} />
                     </Link>
                   )}

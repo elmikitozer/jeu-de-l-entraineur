@@ -28,7 +28,7 @@ function ArrowBadge({ delta, cardDelay }: { delta: number; cardDelay: number }) 
       <motion.span
         initial={reduced ? false : { scale: 1 }}
         animate={{ scale: [1, 1.2, 1] }}
-        transition={reduced ? { duration: 0 } : { type: 'spring', duration: 0.5, delay: cardDelay + 0.4 }}
+        transition={reduced ? { duration: 0 } : { type: 'tween', ease: 'easeInOut', duration: 0.5, delay: cardDelay + 0.4 }}
       >
         {arrow}
       </motion.span>

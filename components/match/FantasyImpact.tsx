@@ -68,7 +68,7 @@ function FantasyRow({ entry }: { entry: MatchFantasyEntry }) {
       <Flag teamName={entry.player.nationality} size="24x18" className="flex-shrink-0" />
       <div className="flex flex-col min-w-0 flex-1">
         <Link
-          href={`/player/${entry.player.id}`}
+          href={`/players/${entry.player.id}`}
           className="font-semibold font-body text-[14px] text-ink truncate hover:opacity-75 transition-opacity"
         >
           {entry.player.name}
@@ -131,7 +131,7 @@ export default function FantasyImpact({ fantasy, rankingImpact }: Props) {
             {rankingImpact.map((r) => (
               <div key={r.participantId} className="flex items-center justify-between">
                 <Link
-                  href={`/team/${r.participantId}`}
+                  href={`/equipes/${r.participantId}`}
                   className="font-semibold font-body text-[14px] text-ink hover:opacity-75 transition-opacity"
                 >
                   {r.participantName}

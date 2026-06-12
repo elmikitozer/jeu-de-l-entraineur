@@ -63,7 +63,7 @@ function EventNode({ event }: { event: MatchEvent }) {
   const content = (
     <div className={`flex flex-col ${isHome ? 'md:items-end md:text-right' : 'md:items-start md:text-left'}`}>
       <Link
-        href={`/player/${event.playerId}`}
+        href={`/players/${event.playerId}`}
         className="font-display font-bold italic text-[17px] md:text-[19px] text-white hover:opacity-75 transition-opacity leading-tight"
       >
         {event.playerName}

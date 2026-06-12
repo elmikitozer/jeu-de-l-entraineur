@@ -70,7 +70,7 @@ export default function LeaderboardTableAnimated({ rest, maxPoints }: Props) {
               : { duration: 0.35, delay: idx * 0.06, ease: 'easeOut' }
           }
         >
-          <Link href={`/team/${entry.id}`} className="block hover:opacity-80 transition-opacity">
+          <Link href={`/equipes/${entry.id}`} className="block hover:opacity-80 transition-opacity">
             {/* Mobile */}
             <div
               className="grid md:hidden items-center px-4 py-3"

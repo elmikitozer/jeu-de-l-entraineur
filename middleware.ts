@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminToken } from '@/lib/admin-auth'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname === '/admin/login') return NextResponse.next()
@@ -9,10 +10,9 @@ export function middleware(request: NextRequest) {
   const isAdminApi = pathname.startsWith('/api/admin')
 
   if (isAdminPage || isAdminApi) {
-    const adminPassword = process.env.ADMIN_PASSWORD
-    const token = request.cookies.get('admin_token')
+    const token = request.cookies.get('admin_token')?.value
 
-    const authenticated = adminPassword && token && token.value === adminPassword
+    const authenticated = await verifyAdminToken(token, process.env.ADMIN_PASSWORD)
 
     if (!authenticated) {
       if (isAdminApi) {

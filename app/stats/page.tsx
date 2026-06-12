@@ -70,7 +70,7 @@ export default async function StatsPage() {
                   <StatRow
                     key={s.player.id}
                     rank={i + 1}
-                    href={`/player/${s.player.id}`}
+                    href={`/players/${s.player.id}`}
                     name={s.player.name}
                     sub={<PlayerSub nationality={s.player.nationality} position={s.player.position} />}
                     value={`${s.count} but${s.count > 1 ? 's' : ''}`}
@@ -89,7 +89,7 @@ export default async function StatsPage() {
                   <StatRow
                     key={s.player.id}
                     rank={i + 1}
-                    href={`/player/${s.player.id}`}
+                    href={`/players/${s.player.id}`}
                     name={s.player.name}
                     sub={<PlayerSub nationality={s.player.nationality} position={s.player.position} />}
                     value={`${s.count} passe${s.count > 1 ? 's' : ''}`}
@@ -108,7 +108,7 @@ export default async function StatsPage() {
                   <StatRow
                     key={s.player.id}
                     rank={i + 1}
-                    href={`/player/${s.player.id}`}
+                    href={`/players/${s.player.id}`}
                     name={s.player.name}
                     sub={<PlayerSub nationality={s.player.nationality} extra={`${s.matchCount} match${s.matchCount > 1 ? 's' : ''}`} />}
                     value={`${s.avg} pts/m`}
@@ -127,7 +127,7 @@ export default async function StatsPage() {
                   <Avatar name={mostRegular.participant.name} size={52} />
                   <div className="flex-1">
                     <Link
-                      href={`/team/${mostRegular.participant.id}`}
+                      href={`/equipes/${mostRegular.participant.id}`}
                       className="text-[17px] font-bold font-body text-ink hover:text-green transition-colors"
                     >
                       {mostRegular.participant.name}

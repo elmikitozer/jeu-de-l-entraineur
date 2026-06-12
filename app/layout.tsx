@@ -6,6 +6,7 @@ import FooterUpdatedAt from '@/components/FooterUpdatedAt';
 import MobileMenu from '@/components/MobileMenu';
 import NavLinks from '@/components/NavLinks';
 import PulseDot from '@/components/PulseDot';
+import SearchOverlay from '@/components/SearchOverlay';
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <FooterUpdatedAt />
               </span>
               {/* <DarkModeToggle /> */}
+              <SearchOverlay />
               <MobileMenu />
             </div>
           </nav>

@@ -4,8 +4,11 @@
 -- Ordre d'exécution dans Supabase SQL Editor :
 --   1. Coller tout ce fichier et exécuter en une seule fois (Run).
 --   2. Les tables sont créées dans le bon ordre pour respecter les FK.
---   3. Row Level Security est désactivé : le site est public en lecture seule,
---      l'écriture se fait uniquement via les Route Handlers avec le service role.
+--   3. Row Level Security est ACTIVÉ sur chaque table avec une policy SELECT pour
+--      anon/authenticated (lecture publique + Realtime). Aucune policy d'écriture :
+--      les écritures passent par les Route Handlers en service_role, qui bypasse RLS.
+--      ⚠️ Ne JAMAIS désactiver RLS : la clé anon est publique (bundle client), donc
+--      RLS off = écriture anonyme possible sur tout (classement falsifiable).
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -27,7 +30,9 @@ CREATE TABLE IF NOT EXISTS participants (
   created_at  TIMESTAMP   NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE participants DISABLE ROW LEVEL SECURITY;
+ALTER TABLE participants ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON participants;
+CREATE POLICY "public_read" ON participants FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_participants_total_points
   ON participants (total_points DESC);
@@ -47,7 +52,9 @@ CREATE TABLE IF NOT EXISTS players (
   api_football_id  INTEGER UNIQUE     -- ID dans l'API-Football (peut être NULL avant sync)
 );
 
-ALTER TABLE players DISABLE ROW LEVEL SECURITY;
+ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON players;
+CREATE POLICY "public_read" ON players FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_players_nationality_code
   ON players (nationality_code);
@@ -73,7 +80,9 @@ CREATE TABLE IF NOT EXISTS teams (
   UNIQUE (participant_id, slot)
 );
 
-ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON teams;
+CREATE POLICY "public_read" ON teams FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_teams_participant_id
   ON teams (participant_id);
@@ -100,7 +109,9 @@ CREATE TABLE IF NOT EXISTS matches (
                           CHECK (status IN ('scheduled', 'live', 'finished'))
 );
 
-ALTER TABLE matches DISABLE ROW LEVEL SECURITY;
+ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON matches;
+CREATE POLICY "public_read" ON matches FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_matches_status
   ON matches (status);
@@ -134,7 +145,9 @@ CREATE TABLE IF NOT EXISTS player_stats (
   UNIQUE (player_id, match_id)
 );
 
-ALTER TABLE player_stats DISABLE ROW LEVEL SECURITY;
+ALTER TABLE player_stats ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON player_stats;
+CREATE POLICY "public_read" ON player_stats FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_player_stats_player_id
   ON player_stats (player_id);
@@ -158,7 +171,9 @@ CREATE TABLE IF NOT EXISTS points_log (
   created_at       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE points_log DISABLE ROW LEVEL SECURITY;
+ALTER TABLE points_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public_read" ON points_log;
+CREATE POLICY "public_read" ON points_log FOR SELECT TO anon, authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_points_log_participant_id
   ON points_log (participant_id);

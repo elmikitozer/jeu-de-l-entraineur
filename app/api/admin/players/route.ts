@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isAdminAuthenticated } from '@/lib/admin-guard'
 
 const SELECT_FIELDS = 'id, name, nationality, nationality_code, position, photo_url, api_football_id'
 const PAGE_SIZE = 1000
@@ -35,6 +36,9 @@ async function getAllPlayers() {
 }
 
 export async function GET() {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
   try {
     const players = await getAllPlayers()
     return NextResponse.json({ players })

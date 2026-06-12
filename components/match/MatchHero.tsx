@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Match } from '@/lib/types'
-import { TEAM_NAME_FR } from '@/lib/flags'
+import { TEAM_NAME_FR, getCountryCode } from '@/lib/flags'
 import { parseMatchDateUTC } from '@/lib/datetime'
 import Flag from '@/components/Flag'
 import LocalTime from '@/components/LocalTime'
@@ -64,18 +65,26 @@ function Countdown({ date }: { date: string }) {
   )
 }
 
-function TeamBlock({ team, align }: { team: string; align: 'left' | 'right' }) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-3 flex-1 min-w-0 ${
-        align === 'left' ? 'md:items-end' : 'md:items-start'
-      }`}
-    >
+function TeamBlock({ team, align, matchId }: { team: string; align: 'left' | 'right'; matchId: string }) {
+  const code = getCountryCode(team)
+  const inner = (
+    <>
       <Flag teamName={team} size="40x30" className="!w-[68px] !h-[48px] shadow-lg" />
-      <span className="font-display font-bold italic uppercase text-[26px] md:text-[40px] leading-[0.95] text-white text-center md:text-inherit break-words">
+      <span className="font-display font-bold italic uppercase text-[26px] md:text-[40px] leading-[0.95] text-white text-center md:text-inherit break-words group-hover:text-[color:var(--c-lime)] transition-colors">
         {TEAM_NAME_FR[team] ?? team}
       </span>
-    </div>
+    </>
+  )
+  const cls = `group flex flex-col items-center gap-3 flex-1 min-w-0 ${
+    align === 'left' ? 'md:items-end' : 'md:items-start'
+  }`
+
+  // Pas de code (ex: "TBD") → bloc non cliquable
+  if (!code) return <div className={cls}>{inner}</div>
+  return (
+    <Link href={`/teams/${code}?from=/matches/${matchId}`} className={cls}>
+      {inner}
+    </Link>
   )
 }
 
@@ -133,7 +142,7 @@ export default function MatchHero({ match }: Props) {
 
       {/* Équipes + score */}
       <div className="flex items-center justify-between gap-3 md:gap-6">
-        <TeamBlock team={match.home_team} align="left" />
+        <TeamBlock team={match.home_team} align="left" matchId={match.id} />
 
         <div className="flex flex-col items-center flex-shrink-0 px-1 md:px-4">
           {hasScore ? (
@@ -157,7 +166,7 @@ export default function MatchHero({ match }: Props) {
           )}
         </div>
 
-        <TeamBlock team={match.away_team} align="right" />
+        <TeamBlock team={match.away_team} align="right" matchId={match.id} />
       </div>
 
       {/* Countdown pour les matchs à venir */}

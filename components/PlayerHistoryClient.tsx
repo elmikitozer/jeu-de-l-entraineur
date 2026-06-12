@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { PlayerMatchEntry } from '@/lib/queries'
 import type { PointsBreakdown } from '@/lib/types'
@@ -102,12 +103,16 @@ export default function PlayerHistoryClient({ history }: Props) {
         </ResponsiveContainer>
       </div>
 
-      {/* Historique */}
-      <div className="bg-card border border-line rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-[100px_1fr_60px_80px_36px] px-5 py-3.5 border-b-2 border-ink text-[11px] font-bold font-body tracking-[0.1em] text-sub uppercase">
+      {/* Matchs joués */}
+      <div>
+        <h2 className="font-display font-bold text-[22px] uppercase tracking-[0.04em] text-ink mb-4">
+          Matchs joués
+        </h2>
+        <div className="bg-card border border-line rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-[88px_1fr_46px_70px_34px] px-5 py-3.5 border-b-2 border-ink text-[11px] font-bold font-body tracking-[0.1em] text-sub uppercase">
           <span>Date</span>
           <span>Match</span>
-          <span className="text-center">Résultat</span>
+          <span className="text-center">Rés.</span>
           <span className="text-right">Points</span>
           <span />
         </div>
@@ -127,31 +132,41 @@ export default function PlayerHistoryClient({ history }: Props) {
                 borderBottom: idx < history.length - 1 ? '1px solid var(--c-line)' : 'none',
               }}
             >
-              <button
-                onClick={() => toggle(entry.match_id)}
-                className="w-full grid grid-cols-[100px_1fr_60px_80px_36px] items-center px-5 py-3 text-left hover:opacity-80 transition-opacity"
-              >
-                <span className="text-[12px] font-body text-sub">
-                  {formatDate(entry.match_date)}
-                </span>
-                <span className="text-[14px] font-semibold font-body text-ink truncate">
-                  {TEAM_NAME_FR[entry.home_team] ?? entry.home_team} — {TEAM_NAME_FR[entry.away_team] ?? entry.away_team}
-                  {entry.home_score !== null && (
-                    <span className="ml-2 text-sub font-normal">
-                      ({entry.home_score}–{entry.away_score})
-                    </span>
-                  )}
-                </span>
-                <span className={`text-center text-[14px] font-bold font-body ${res?.color ?? 'text-sub'}`}>
-                  {entry.played ? (res?.label ?? '—') : '—'}
-                </span>
-                <span className={`text-right font-display font-bold italic text-[22px] ${entry.total_points > 0 ? 'text-delta-pos' : entry.total_points < 0 ? 'text-delta-neg' : 'text-sub'}`}>
-                  {entry.total_points > 0 ? '+' : ''}{entry.total_points}
-                </span>
-                <span className="text-center text-sub text-[12px]">
+              <div className="grid grid-cols-[88px_1fr_46px_70px_34px] items-center px-5 py-3">
+                {/* Le clic sur la ligne ouvre la page du match ; display:contents
+                    laisse les 4 cellules participer à la grille parente. */}
+                <Link
+                  href={`/matches/${entry.match_id}`}
+                  className="contents group"
+                >
+                  <span className="text-[12px] font-body text-sub group-hover:text-ink transition-colors">
+                    {formatDate(entry.match_date)}
+                  </span>
+                  <span className="text-[14px] font-semibold font-body text-ink truncate group-hover:text-green transition-colors">
+                    {TEAM_NAME_FR[entry.home_team] ?? entry.home_team} — {TEAM_NAME_FR[entry.away_team] ?? entry.away_team}
+                    {entry.home_score !== null && (
+                      <span className="ml-2 text-sub font-normal">
+                        ({entry.home_score}–{entry.away_score})
+                      </span>
+                    )}
+                  </span>
+                  <span className={`text-center text-[14px] font-bold font-body ${res?.color ?? 'text-sub'}`}>
+                    {entry.played ? (res?.label ?? '—') : '—'}
+                  </span>
+                  <span className={`text-right font-display font-bold italic text-[22px] ${entry.total_points > 0 ? 'text-delta-pos' : entry.total_points < 0 ? 'text-delta-neg' : 'text-sub'}`}>
+                    {entry.total_points > 0 ? '+' : ''}{entry.total_points}
+                  </span>
+                </Link>
+                <button
+                  onClick={() => toggle(entry.match_id)}
+                  aria-label={isOpen ? 'Masquer le détail' : 'Voir le détail des points'}
+                  className="text-center text-sub text-[12px] py-1 hover:text-ink transition-colors"
+                  disabled={breakdownEntries.length === 0}
+                  style={{ opacity: breakdownEntries.length === 0 ? 0.25 : 1 }}
+                >
                   {isOpen ? '▲' : '▼'}
-                </span>
-              </button>
+                </button>
+              </div>
 
               {isOpen && breakdownEntries.length > 0 && (
                 <div className="px-5 pb-3 pt-0">
@@ -178,6 +193,7 @@ export default function PlayerHistoryClient({ history }: Props) {
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

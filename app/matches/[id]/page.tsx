@@ -79,8 +79,8 @@ export default async function MatchPage({ params }: Props) {
           <section className="mt-10">
             <SectionTitle>Compositions</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <LineupCard team={home.team} players={home.lineup} />
-              <LineupCard team={away.team} players={away.lineup} />
+              <LineupCard team={home.team} players={home.lineup} matchId={match.id} />
+              <LineupCard team={away.team} players={away.lineup} matchId={match.id} />
             </div>
           </section>
 

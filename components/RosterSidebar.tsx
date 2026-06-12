@@ -96,7 +96,7 @@ export default function RosterSidebar({ lines }: Props) {
               {line.players.map((player) => (
                 <Link
                   key={player.id}
-                  href={`/player/${player.id}`}
+                  href={`/players/${player.id}`}
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-zebra transition-colors border-b border-line last:border-b-0"
                 >
                   <Avatar name={player.name} size={28} />

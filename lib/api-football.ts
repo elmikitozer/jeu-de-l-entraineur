@@ -16,6 +16,13 @@ export interface RawPlayerStats {
   motm: boolean
   yellowCards: number
   redCards: number
+  // Arrêts de penalty. Source : champ `penalty.saved` de /fixtures/players, qui
+  // agrège les arrêts du temps réglementaire/prolongation. ⚠️ La séance de TAB
+  // n'est PAS attribuable au gardien depuis les events API-Football (les tirs
+  // manqués n'y distinguent pas « arrêté » de « hors cadre » et ne nomment pas
+  // le gardien) : les arrêts en TAB ne sont donc crédités que si l'API les
+  // inclut dans `penalty.saved`. Le barème prévoit « en jeu ou TAB » — cette
+  // limite vient de la donnée, pas du calcul.
   penaltySaved: number
   penaltyScored: number     // hors TAB
   freekickGoal: number
@@ -131,16 +138,29 @@ async function apiFetch<T>(path: string): Promise<T> {
 /**
  * Détermine win/draw/loss pour chaque équipe à partir des résultats du match.
  * Si winner=null (match en cours), utilise le score actuel.
+ *
+ * decidedByShootout : si le match s'est joué aux tirs au but (statut API "PEN"),
+ * le résultat collectif est un NUL pour les deux équipes (convention FIFA : un
+ * match décidé aux TAB est officiellement un nul). L'API renseigne pourtant
+ * winner=true pour le qualifié — il ne faut donc PAS s'y fier dans ce cas.
+ * Les arrêts de penalty en TAB restent crédités séparément (penalty_saved).
  */
-function resolveTeamResults(
+export function resolveTeamResults(
   homeTeamId: number,
   awayTeamId: number,
   homeWinner: boolean | null,
   awayWinner: boolean | null,
   homeGoals: number,
   awayGoals: number,
+  decidedByShootout = false,
 ): Record<number, 'win' | 'draw' | 'loss'> {
   const results: Record<number, 'win' | 'draw' | 'loss'> = {}
+
+  if (decidedByShootout) {
+    results[homeTeamId] = 'draw'
+    results[awayTeamId] = 'draw'
+    return results
+  }
 
   if (homeWinner === true) {
     results[homeTeamId] = 'win'
@@ -171,11 +191,13 @@ function buildStatsFromEvents(fixture: AF_Fixture): RawPlayerStats[] {
   const awayTeamId = fixture.teams.away.id
   const homeGoals = fixture.goals.home ?? 0
   const awayGoals = fixture.goals.away ?? 0
+  const decidedByShootout = fixture.fixture.status.short === 'PEN'
 
   const teamResults = resolveTeamResults(
     homeTeamId, awayTeamId,
     fixture.teams.home.winner, fixture.teams.away.winner,
     homeGoals, awayGoals,
+    decidedByShootout,
   )
 
   // Joueurs en jeu (starters + entrants)
@@ -246,7 +268,7 @@ function buildStatsFromEvents(fixture: AF_Fixture): RawPlayerStats[] {
       motm: false,
       yellowCards: s?.yellowCards ?? 0,
       redCards: s?.redCards ?? 0,
-      penaltySaved: 0,                          // non disponible depuis les events
+      penaltySaved: 0,                          // indisponible en live (events) ; corrigé par le sync final via /fixtures/players
       penaltyScored: s?.penaltyScored ?? 0,
       freekickGoal: s?.freekickGoal ?? 0,
       cleansheet: conceded === 0,               // le sync final corrigera pour les GK uniquement
@@ -291,11 +313,13 @@ export async function fetchFinalMatchStats(apiMatchId: number): Promise<RawPlaye
   const awayTeamId = fixture.teams.away.id
   const homeGoals = fixture.goals.home ?? 0
   const awayGoals = fixture.goals.away ?? 0
+  const decidedByShootout = fixture.fixture.status.short === 'PEN'
 
   const teamResults = resolveTeamResults(
     homeTeamId, awayTeamId,
     fixture.teams.home.winner, fixture.teams.away.winner,
     homeGoals, awayGoals,
+    decidedByShootout,
   )
 
   // Buts sur coup franc depuis les events (non présent dans /fixtures/players)
@@ -306,13 +330,19 @@ export async function fetchFinalMatchStats(apiMatchId: number): Promise<RawPlaye
     }
   }
 
-  // Déterminer le MOTM par le rating le plus élevé
+  // Déterminer le MOTM par le rating le plus élevé.
+  // API-Football n'expose pas de MOTM officiel : le meilleur rating est le
+  // meilleur proxy disponible. On exclut les joueurs n'ayant pas foulé la
+  // pelouse (minutes = 0) — un remplaçant non utilisé garde parfois un rating
+  // résiduel et ne doit pas pouvoir être élu homme du match.
   let maxRating = 0
   let motmPlayerId: number | null = null
 
   for (const teamData of playersData.response) {
     for (const { player, statistics } of teamData.players) {
-      const rating = parseFloat(statistics[0]?.games?.rating ?? '0') || 0
+      const games = statistics[0]?.games
+      if ((games?.minutes ?? 0) <= 0) continue
+      const rating = parseFloat(games?.rating ?? '0') || 0
       if (rating > maxRating) {
         maxRating = rating
         motmPlayerId = player.id

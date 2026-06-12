@@ -1,16 +1,9 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { isAdminAuthenticated } from '@/lib/admin-guard'
 
 const SELECT_FIELDS = 'id, name, nationality, nationality_code, position, photo_url, api_football_id'
 const PAGE_SIZE = 1000
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 async function getAllPlayers() {
   const supabase = getSupabase()

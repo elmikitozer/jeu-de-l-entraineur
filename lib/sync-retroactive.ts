@@ -1,13 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { calculatePlayerPoints } from './scoring'
 import type { Position, PlayerStats, PointsBreakdown } from './types'
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 /**
  * Pour un participant nouvellement ajouté, calcule rétroactivement les points

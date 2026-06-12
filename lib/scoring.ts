@@ -137,8 +137,8 @@ export function calculatePlayerPoints(
 // Utilitaire d'affichage
 // ---------------------------------------------------------------------------
 
-/** Labels lisibles en français pour chaque clé de PointsBreakdown. */
-export const BREAKDOWN_LABELS: Record<keyof PointsBreakdown, string> = {
+/** Labels lisibles en français pour chaque clé de PointsBreakdown. Usage interne (formatBreakdown). */
+const BREAKDOWN_LABELS: Record<keyof PointsBreakdown, string> = {
   win_bonus: 'Victoire',
   draw_bonus: 'Match nul',
   goal_position_bonus: 'But (bonus position)',

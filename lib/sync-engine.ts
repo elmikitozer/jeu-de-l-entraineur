@@ -5,7 +5,7 @@
  * Idempotent : relancer deux fois de suite ne crée pas de doublons.
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { calculatePlayerPoints } from './scoring'
 import {
   fetchLiveMatchStats,
@@ -31,15 +31,6 @@ const LIVE_WINDOW_MS = 165 * 60 * 1000
 
 // Statuts API-Football indiquant que le match est terminé
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN', 'AWD', 'WO'])
-
-// ── Client Supabase ───────────────────────────────────────────────────────────
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -1,23 +1,13 @@
 /**
  * queries.ts — Fonctions Supabase pour les pages publiques.
  * Toutes les requêtes utilisent la clé anon (données publiques, RLS read-only).
- * createClient sans generic pour éviter les erreurs TS d'inférence (pattern projet).
+ * Clients Supabase construits via lib/supabase-clients (sans generic, pattern projet).
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient as getClient } from '@/lib/supabase-clients'
 import type { Match, Player, Participant, PointsBreakdown, Position, MatchStatus, MatchResult } from './types'
 import { calculatePlayerPoints } from './scoring'
 import { getCountryCode, TEAM_NAME_FR } from './flags'
-
-// Préférer la service role key (server-side uniquement) pour contourner
-// tout problème de permissions RLS / anon key manquante.
-// queries.ts n'est appelé que depuis des Server Components — jamais côté client.
-function getClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
 
 // ── Types exportés ────────────────────────────────────────────────────────────
 

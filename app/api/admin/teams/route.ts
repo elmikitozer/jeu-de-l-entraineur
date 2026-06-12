@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import type { Player } from '@/lib/types'
 import { syncRetroactive } from '@/lib/sync-retroactive'
 import { isAdminAuthenticated } from '@/lib/admin-guard'
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 // Slot → position attendue (formation 4-3-3)
 const SLOT_POSITION: Record<number, Player['position']> = {

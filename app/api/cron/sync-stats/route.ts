@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { syncMatch } from '@/lib/sync-engine'
 import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
@@ -15,13 +15,6 @@ const CATCHUP_WINDOW_MS = 24 * 60 * 60 * 1000
 const POST_CHECK_INTERVAL_MS = 60 * 60 * 1000
 // Nombre max de vérifications post-match
 const MAX_POST_CHECK_ATTEMPTS = 6
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 export async function GET(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────

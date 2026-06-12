@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAnonClient as getClient } from '@/lib/supabase-clients'
 import { calculatePlayerPoints } from '@/lib/scoring'
 import { getNationsIndex } from '@/lib/queries'
 import { TEAM_NAME_FR, getCountryCode } from '@/lib/flags'
@@ -7,15 +7,6 @@ import type { Position, MatchResult } from '@/lib/types'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
-
-// Endpoint public non authentifié → clé ANON uniquement (jamais le service_role).
-// La lecture est protégée par les policies RLS SELECT publiques.
-function getClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
 
 /** Échappe les wildcards LIKE (% _ \) pour éviter l'injection de pattern. */
 function escapeLike(s: string): string {

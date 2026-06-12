@@ -196,11 +196,6 @@ export function getFlagUrl(teamName: string, size?: '24x18' | '40x30' | '16x12')
   return `https://flagcdn.com/${code}.svg`
 }
 
-/** Retourne true si le nom est explicitement référencé dans FLAGS (même sans drapeau comme TBD). */
-export function isKnownTeam(teamName: string): boolean {
-  return teamName in FLAGS
-}
-
 // ── Couleurs maillots domicile ────────────────────────────────────────────────
 // primary = couleur dominante, secondary = couleur de contraste (col, bandes)
 

@@ -35,12 +35,13 @@ export interface Player {
   api_football_id: number | null
 }
 
-export interface Team {
-  id: string
-  participant_id: string
-  player_id: string
-  slot: number
-}
+// QW5 (audit dette) — type exporté inutilisé. Commenté ; supprimer après le tournoi si rien ne casse.
+// export interface Team {
+//   id: string
+//   participant_id: string
+//   player_id: string
+//   slot: number
+// }
 
 export interface Match {
   id: string
@@ -74,15 +75,16 @@ export interface PlayerStats {
   cleansheet: boolean
 }
 
-export interface PointsLog {
-  id: string
-  participant_id: string
-  player_id: string
-  match_id: string
-  points_breakdown: PointsBreakdown
-  total_points: number
-  created_at: string
-}
+// QW5 (audit dette) — type exporté inutilisé. Commenté ; supprimer après le tournoi si rien ne casse.
+// export interface PointsLog {
+//   id: string
+//   participant_id: string
+//   player_id: string
+//   match_id: string
+//   points_breakdown: PointsBreakdown
+//   total_points: number
+//   created_at: string
+// }
 
 // ---------------------------------------------------------------------------
 // Types utilitaires
@@ -116,19 +118,20 @@ export interface PointsBreakdown {
 // Types enrichis (jointures fréquentes)
 // ---------------------------------------------------------------------------
 
-export interface TeamWithPlayer extends Team {
-  player: Player
-}
-
-export interface ParticipantWithTeam extends Participant {
-  team: TeamWithPlayer[]
-}
-
-export interface PlayerStatsWithMatch extends PlayerStats {
-  match: Match
-}
-
-export interface PointsLogWithDetails extends PointsLog {
-  player: Player
-  match: Match
-}
+// QW5 (audit dette) — types exportés inutilisés. Commentés ; supprimer après le tournoi si rien ne casse.
+// export interface TeamWithPlayer extends Team {
+//   player: Player
+// }
+//
+// export interface ParticipantWithTeam extends Participant {
+//   team: TeamWithPlayer[]
+// }
+//
+// export interface PlayerStatsWithMatch extends PlayerStats {
+//   match: Match
+// }
+//
+// export interface PointsLogWithDetails extends PointsLog {
+//   player: Player
+//   match: Match
+// }

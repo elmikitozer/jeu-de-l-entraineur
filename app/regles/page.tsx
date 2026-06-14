@@ -190,23 +190,48 @@ export default function ReglesPage() {
         <Section title="Répartition de la cagnotte">
           <p className="text-[14px] font-body text-ink mb-4">
             La cagnotte totale est calculée sur la base de <strong>20 € × nombre de participants</strong>.
+            Le <strong>1ᵉʳ remporte l&apos;intégralité de la cagnotte</strong> ; le <strong>2ᵉ et le 3ᵉ sont remboursés de leur mise</strong> (20 € chacun).
           </p>
-          <div
-            className="flex items-center justify-between p-5 rounded-xl"
-            style={{ background: 'var(--c-zebra)' }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-[32px] leading-none">🥇</span>
-              <div>
-                <div className="font-bold text-[16px] text-ink">1ᵉʳ du classement</div>
-                <div className="text-[12px] text-sub">Vainqueur du Jeu de l&apos;Entraîneur</div>
+          <div className="flex flex-col gap-3">
+            <div
+              className="flex items-center justify-between p-5 rounded-xl"
+              style={{ background: 'var(--c-zebra)' }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-[32px] leading-none">🥇</span>
+                <div>
+                  <div className="font-bold text-[16px] text-ink">1ᵉʳ du classement</div>
+                  <div className="text-[12px] text-sub">Remporte toute la cagnotte</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-display font-bold italic text-[36px] leading-none" style={{ color: 'var(--c-green)' }}>
+                  100%
+                </div>
+                <div className="text-[11px] text-sub">de la cagnotte</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="font-display font-bold italic text-[36px] leading-none" style={{ color: 'var(--c-green)' }}>
-                100%
+
+            <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--c-zebra)' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-[26px] leading-none">🥈</span>
+                <div>
+                  <div className="font-bold text-[15px] text-ink">2ᵉ du classement</div>
+                  <div className="text-[12px] text-sub">Remboursé de sa mise</div>
+                </div>
               </div>
-              <div className="text-[11px] text-sub">de la cagnotte</div>
+              <div className="font-display font-bold italic text-[24px] leading-none text-sub">20 €</div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'var(--c-zebra)' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-[26px] leading-none">🥉</span>
+                <div>
+                  <div className="font-bold text-[15px] text-ink">3ᵉ du classement</div>
+                  <div className="text-[12px] text-sub">Remboursé de sa mise</div>
+                </div>
+              </div>
+              <div className="font-display font-bold italic text-[24px] leading-none text-sub">20 €</div>
             </div>
           </div>
         </Section>

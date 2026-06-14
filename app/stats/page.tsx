@@ -11,6 +11,7 @@ export default async function StatsPage() {
 
   const { totalPrize, prizeFirst, topScorers, topAssists, mostRentable, mostRegular, totalParticipants } = stats
 
+  const mise = totalParticipants > 0 ? Math.round(totalPrize / totalParticipants) : 20
   const empty = totalParticipants === 0
 
   return (
@@ -48,13 +49,24 @@ export default async function StatsPage() {
 
             <div className="mt-6 flex flex-col gap-2">
               <div className="flex justify-between items-baseline">
-                <span className="text-[13px] font-semibold font-body text-ink">🥇 1ᵉʳ prix</span>
+                <span className="text-[13px] font-semibold font-body text-ink">🥇 1ᵉʳ — remporte la cagnotte</span>
                 <span className="font-display font-bold italic text-[26px] text-ink">{prizeFirst} €</span>
               </div>
               <div className="h-2 bg-line rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: '100%', background: 'var(--c-podium1)' }} />
               </div>
-              <span className="text-[11px] font-body text-sub text-right">100%</span>
+              <span className="text-[11px] font-body text-sub text-right">100% de la cagnotte</span>
+
+              <div className="mt-3 pt-3 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--c-line)' }}>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-body text-ink">🥈 2ᵉ — remboursé de sa mise</span>
+                  <span className="font-semibold font-body text-[14px] text-sub">{mise} €</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[13px] font-body text-ink">🥉 3ᵉ — remboursé de sa mise</span>
+                  <span className="font-semibold font-body text-[14px] text-sub">{mise} €</span>
+                </div>
+              </div>
             </div>
           </div>
 

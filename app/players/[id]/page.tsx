@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PlayerPage({ params }: Props) {
-  const { player, teamCode, history } = await getPlayerHistory(params.id)
+  const { player, teamCode, history, ownership } = await getPlayerHistory(params.id)
 
   if (!player) notFound()
 
@@ -82,6 +82,37 @@ export default async function PlayerPage({ params }: Props) {
             pts · {playedCount} match{playedCount > 1 ? 's' : ''}
           </div>
         </div>
+      </div>
+
+      {/* ── Taux de sélection (différentiel) ── */}
+      <div className="mb-9 bg-card border border-line rounded-2xl px-5 py-4">
+        <div className="text-[10px] font-bold font-body tracking-[0.16em] uppercase text-sub mb-2">
+          Taux de sélection
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2">
+            <span className="font-display font-bold italic text-[30px]" style={{ color: 'var(--c-lime)' }}>
+              {ownership.pct}%
+            </span>
+            <span className="text-[13px] font-body text-sub">
+              {ownership.count}/{ownership.total} coach{ownership.total > 1 ? 's' : ''}
+            </span>
+          </div>
+          {ownership.count === 0 ? (
+            <span className="text-[11px] font-bold font-body uppercase tracking-[0.1em]" style={{ color: 'var(--c-lime)' }}>
+              Différentiel total
+            </span>
+          ) : ownership.count === 1 ? (
+            <span className="text-[11px] font-bold font-body uppercase tracking-[0.1em] text-sub">
+              Pick unique
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-2.5 text-[12.5px] font-body text-sub">
+          {ownership.count > 0
+            ? ownership.participants.join(' · ')
+            : 'Aucun coach n’a sélectionné ce joueur.'}
+        </p>
       </div>
 
       {/* ── Évolution + matchs joués (client) ── */}

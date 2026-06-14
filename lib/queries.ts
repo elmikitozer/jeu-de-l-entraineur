@@ -55,6 +55,14 @@ export interface PlayerMatchEntry {
   cumulative_points: number
 }
 
+/** Taux de sélection d'un joueur parmi les équipes fantasy (différentiel). */
+export interface PlayerOwnership {
+  count: number          // nb de participants l'ayant sélectionné
+  total: number          // nb total de participants
+  pct: number            // count/total arrondi en %
+  participants: string[] // noms des participants l'ayant
+}
+
 export interface PlayerStats5 {
   player: Pick<Player, 'id' | 'name' | 'nationality' | 'nationality_code' | 'position'>
   count: number
@@ -244,35 +252,50 @@ export async function getParticipantWithTeam(participantId: string): Promise<Par
 
 export async function getPlayerHistory(
   playerId: string
-): Promise<{ player: Player | null; teamCode: string | null; history: PlayerMatchEntry[] }> {
+): Promise<{ player: Player | null; teamCode: string | null; history: PlayerMatchEntry[]; ownership: PlayerOwnership }> {
   const supabase = getClient()
 
   // Source de vérité : player_stats (TOUS les matchs où le joueur a une feuille,
   // sélectionné par un participant ou non). Les points sont (re)calculés via le
   // moteur de scoring — identiques à points_log mais disponibles même pour les
   // joueurs choisis par personne. On joint matches directement (FK déclarée).
-  const [{ data: playerRow }, { data: stats, error: statsErr }] = await Promise.all([
-    supabase
-      .from('players')
-      .select('id, name, nationality, nationality_code, position, photo_url, api_football_id')
-      .eq('id', playerId)
-      .single(),
-    supabase
-      .from('player_stats')
-      .select(
-        'match_id, played, result, goals, assists, motm, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, ' +
-          'matches(id, date, home_team, away_team, home_score, away_score, stage, status)'
-      )
-      .eq('player_id', playerId),
-  ])
+  const [{ data: playerRow }, { data: stats, error: statsErr }, { data: allParticipants }, { data: ownerRows }] =
+    await Promise.all([
+      supabase
+        .from('players')
+        .select('id, name, nationality, nationality_code, position, photo_url, api_football_id')
+        .eq('id', playerId)
+        .single(),
+      supabase
+        .from('player_stats')
+        .select(
+          'match_id, played, result, goals, assists, motm, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, ' +
+            'matches(id, date, home_team, away_team, home_score, away_score, stage, status)'
+        )
+        .eq('player_id', playerId),
+      supabase.from('participants').select('id'),
+      supabase.from('teams').select('participant_id, participants(name)').eq('player_id', playerId),
+    ])
 
   if (statsErr) console.error('[getPlayerHistory] player_stats', statsErr.message)
 
   const player = playerRow as unknown as Player | null
   const teamCode = player ? getCountryCode(player.nationality) : null
 
+  // Ownership (différentiel) — calculé même sans feuille de match
+  const total = (allParticipants ?? []).length
+  const ownerNames = ((ownerRows ?? []) as unknown as Array<{ participants: { name: string } | null }>)
+    .map((o) => o.participants?.name ?? '—')
+    .sort((a, b) => a.localeCompare(b))
+  const ownership: PlayerOwnership = {
+    count: ownerNames.length,
+    total,
+    pct: total > 0 ? Math.round((ownerNames.length / total) * 100) : 0,
+    participants: ownerNames,
+  }
+
   if (!player || !stats?.length) {
-    return { player, teamCode, history: [] }
+    return { player, teamCode, history: [], ownership }
   }
 
   type RawStat = {
@@ -331,7 +354,7 @@ export async function getPlayerHistory(
     }
   })
 
-  return { player, teamCode, history }
+  return { player, teamCode, history, ownership }
 }
 
 // ── getLiveMatches ────────────────────────────────────────────────────────────

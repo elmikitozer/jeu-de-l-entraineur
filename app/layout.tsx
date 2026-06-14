@@ -1,5 +1,5 @@
-import type { Metadata } from 'next';
-import { Barlow_Condensed, Outfit } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Barlow_Condensed, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 // import DarkModeToggle from '@/components/DarkModeToggle';
 import FooterUpdatedAt from '@/components/FooterUpdatedAt';
@@ -16,10 +16,12 @@ const barlowCondensed = Barlow_Condensed({
   display: 'swap',
 });
 
-const outfit = Outfit({
+// Police de corps principale, self-hostée via next/font (plus de <link> Google
+// render-blocking). Alimente la variable --font-body utilisée par globals.css.
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['400', '600'],
-  variable: '--font-body-fallback',
+  weight: ['400', '600', '700'],
+  variable: '--font-body',
   display: 'swap',
 });
 
@@ -29,25 +31,20 @@ export const metadata: Metadata = {
     "La version 2026 du célèbre Jeu de l'Entraîneur, pour parier sur les résultats de la Coupe du Monde 2026.",
 };
 
+export const viewport: Viewport = {
+  themeColor: '#093623',
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${barlowCondensed.variable} ${outfit.variable}`}
+      className={`${barlowCondensed.variable} ${spaceGrotesk.variable}`}
     >
-      <head>
-        {/* Space Grotesk — police principale thème Electric Green */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
-        />
-      </head>
       <body
-        className="font-body antialiased text-ink min-h-screen flex flex-col"
+        className="font-body antialiased text-ink min-h-dvh flex flex-col"
         style={{ background: 'var(--c-bg-gradient)' }}
       >
         {/* ── Navbar ── */}

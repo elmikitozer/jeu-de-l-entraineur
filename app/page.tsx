@@ -77,6 +77,33 @@ export default async function LeaderboardPage() {
           </div>
         </div>
 
+        {/* ── Chronique du soir (IA) — mise en avant, avant le classement ── */}
+        {recap && (
+          <div className="mt-8">
+            <div className="flex items-baseline gap-3 mb-3.5">
+              <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em]" style={{ color: 'var(--c-lime)' }}>
+                La chronique du soir
+              </h2>
+              <div className="ml-auto">
+                <RecapShare text={recap.content} />
+              </div>
+            </div>
+            <div
+              className="rounded-2xl px-5 md:px-7 py-5 text-white"
+              style={{
+                background: 'var(--c-card-overlay)',
+                border: '1px solid var(--c-card-border)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <p className="text-[15px] md:text-[16px] font-body leading-relaxed italic" style={{ color: 'var(--c-ink)' }}>
+                {recap.content}
+              </p>
+            </div>
+          </div>
+        )}
+
         {empty ? (
           <div className="mt-24 text-center">
             <p className="text-[18px] font-body" style={{ color: 'var(--c-sub)' }}>
@@ -124,33 +151,6 @@ export default async function LeaderboardPage() {
               </div>
             )}
           </>
-        )}
-
-        {/* ── Chronique du soir (IA) ── */}
-        {recap && (
-          <div className="mt-9">
-            <div className="flex items-baseline gap-3 mb-3.5">
-              <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em]" style={{ color: 'var(--c-lime)' }}>
-                La chronique du soir
-              </h2>
-              <div className="ml-auto">
-                <RecapShare text={recap.content} />
-              </div>
-            </div>
-            <div
-              className="rounded-2xl px-5 md:px-7 py-5 text-white"
-              style={{
-                background: 'var(--c-card-overlay)',
-                border: '1px solid var(--c-card-border)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-            >
-              <p className="text-[15px] md:text-[16px] font-body leading-relaxed italic" style={{ color: 'var(--c-ink)' }}>
-                {recap.content}
-              </p>
-            </div>
-          </div>
         )}
 
         {/* ── Matchs en cours ── */}

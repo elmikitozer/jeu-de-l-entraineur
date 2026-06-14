@@ -107,7 +107,7 @@ export async function GET(request: Request) {
           goals: (s.goals as number) || 0, assists: (s.assists as number) || 0, motm: s.motm as boolean,
           yellow_cards: (s.yellow_cards as number) || 0, red_cards: (s.red_cards as number) || 0,
           penalty_saved: (s.penalty_saved as number) || 0, penalty_scored: (s.penalty_scored as number) || 0,
-          freekick_goal: (s.freekick_goal as number) || 0, cleansheet: s.cleansheet as boolean,
+          freekick_goal: (s.freekick_goal as number) || 0, cleansheet: s.cleansheet as boolean, minutes: null,
         },
         pos
       )

@@ -21,6 +21,15 @@ type LiveRow = {
   away_team: string
   home_score: number | null
   away_score: number | null
+  minute: number | null
+  status_short: string | null
+}
+
+/** "67'" en jeu, "MT" à la mi-temps, rien sinon. */
+function liveClock(m: LiveRow): string | null {
+  if (m.status_short === 'HT') return 'MT'
+  if (m.minute != null) return `${m.minute}'`
+  return null
 }
 
 function code(team: string): string {
@@ -40,7 +49,7 @@ export default function LiveScoreBar() {
     async function load() {
       const { data } = await supabase
         .from('matches')
-        .select('id, home_team, away_team, home_score, away_score')
+        .select('id, home_team, away_team, home_score, away_score, minute, status_short')
         .eq('status', 'live')
         .order('date', { ascending: true })
       if (!cancelled) setLive((data ?? []) as unknown as LiveRow[])
@@ -91,6 +100,11 @@ export default function LiveScoreBar() {
               </span>{' '}
               {code(m.away_team)}
             </span>
+            {liveClock(m) && (
+              <span className="text-[11px] font-body font-bold tabular-nums" style={{ color: 'var(--c-lime)' }}>
+                {liveClock(m)}
+              </span>
+            )}
           </Link>
         ))}
       </div>

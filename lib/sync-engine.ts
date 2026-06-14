@@ -67,6 +67,7 @@ function toPlayerStats(raw: RawPlayerStats, matchId: string): PlayerStats {
     penalty_scored: raw.penaltyScored,
     freekick_goal: raw.freekickGoal,
     cleansheet: raw.cleansheet,
+    minutes: raw.minutes,
   }
 }
 
@@ -122,7 +123,9 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
 
   // ── 3. Score et statut API ────────────────────────────────────────────────
 
-  let fixtureResult = { homeScore: 0, awayScore: 0, status: 'NS' }
+  let fixtureResult: { homeScore: number; awayScore: number; status: string; elapsed: number | null } = {
+    homeScore: 0, awayScore: 0, status: 'NS', elapsed: null,
+  }
   try {
     fixtureResult = await fetchFixtureResult(apiMatchId)
   } catch (err) {
@@ -188,6 +191,7 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
         penalty_scored: raw.penaltyScored,
         freekick_goal: raw.freekickGoal,
         cleansheet: raw.cleansheet,
+        minutes: raw.minutes,
       },
       { onConflict: 'player_id,match_id' }
     )
@@ -277,6 +281,8 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
       status: newStatus,
       home_score: fixtureResult.homeScore,
       away_score: fixtureResult.awayScore,
+      minute: fixtureResult.elapsed,
+      status_short: fixtureResult.status,
       last_verified_at: new Date().toISOString(),
       sync_attempts: syncAttempts,
     })

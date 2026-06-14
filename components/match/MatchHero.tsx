@@ -95,6 +95,12 @@ export default function MatchHero({ match }: Props) {
   const isFinished = match.status === 'finished'
   const isLive = match.status === 'live'
   const hasScore = match.home_score !== null && match.away_score !== null
+  const liveLabel =
+    match.status_short === 'HT'
+      ? 'Mi-temps'
+      : match.minute != null
+      ? `En cours · ${match.minute}'`
+      : 'En cours'
 
   const spring = reduced
     ? { duration: 0 }
@@ -124,7 +130,7 @@ export default function MatchHero({ match }: Props) {
               )}
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: 'var(--c-lime)' }} />
             </span>
-            En cours
+            {liveLabel}
           </span>
         )}
         {isFinished && (

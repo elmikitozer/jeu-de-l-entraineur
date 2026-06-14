@@ -29,12 +29,14 @@ export interface RawPlayerStats {
   cleansheet: boolean       // GK uniquement : 0 but concédé
   played: boolean
   result: 'win' | 'draw' | 'loss'
+  minutes: number | null    // minutes jouées (games.minutes) ; null en live (events)
 }
 
 export interface FixtureResult {
   homeScore: number
   awayScore: number
   status: string            // "NS", "1H", "HT", "2H", "ET", "FT", "AET", "PEN", etc.
+  elapsed: number | null    // minute de jeu courante (status.elapsed)
 }
 
 // ── Types internes (réponses API-Football) ───────────────────────────────────
@@ -274,6 +276,7 @@ function buildStatsFromEvents(fixture: AF_Fixture): RawPlayerStats[] {
       cleansheet: conceded === 0,               // le sync final corrigera pour les GK uniquement
       played: true,
       result: teamResults[teamId] ?? 'draw',
+      minutes: null,                            // minutes par joueur indisponibles en live ; corrigées par le sync final
     })
   }
 
@@ -378,6 +381,7 @@ export async function fetchFinalMatchStats(apiMatchId: number): Promise<RawPlaye
         cleansheet: isGK && conceded === 0 && minutes > 0,
         played: minutes > 0,
         result: teamResults[teamId] ?? 'draw',
+        minutes,
       })
     }
   }
@@ -416,5 +420,6 @@ export async function fetchFixtureResult(apiMatchId: number): Promise<FixtureRes
     homeScore: fixture.goals.home ?? 0,
     awayScore: fixture.goals.away ?? 0,
     status: fixture.fixture.status.short,
+    elapsed: fixture.fixture.status.elapsed ?? null,
   }
 }

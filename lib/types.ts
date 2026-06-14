@@ -56,6 +56,8 @@ export interface Match {
   status: MatchStatus
   last_verified_at: string | null
   sync_attempts: number
+  minute: number | null          // chrono live (fixture.status.elapsed), null hors match
+  status_short: string | null    // statut API court : "1H","HT","2H","ET","FT","PEN"...
 }
 
 export interface PlayerStats {
@@ -73,6 +75,7 @@ export interface PlayerStats {
   penalty_scored: number
   freekick_goal: number
   cleansheet: boolean
+  minutes: number | null   // minutes jouées (games.minutes), null si non synchronisé
 }
 
 // QW5 (audit dette) — type exporté inutilisé. Commenté ; supprimer après le tournoi si rien ne casse.

@@ -54,6 +54,7 @@ function PlayerRow({ p, index }: { p: MatchLineupPlayer; index: number }) {
           <span className="font-semibold font-body text-[14px] text-ink truncate">{p.name}</span>
           <span className="flex items-center gap-1.5 text-[11px] font-body text-sub">
             {POSITION_LABELS[p.position] ?? p.position}
+            {p.minutes != null && p.minutes > 0 && <span title="Minutes jouées">· {p.minutes}&apos;</span>}
             {p.goals > 0 && <span title="But(s)">· ⚽{p.goals > 1 ? `×${p.goals}` : ''}</span>}
             {p.assists > 0 && <span style={{ color: 'var(--c-blue)' }} title="Passe(s)">· →{p.assists > 1 ? `×${p.assists}` : ''}</span>}
             {p.motm && <span style={{ color: 'var(--c-lime)' }} title="Homme du match">· MOTM</span>}

@@ -22,6 +22,7 @@ function makeStats(overrides: Partial<PlayerStats>): PlayerStats {
     penalty_scored: 0,
     freekick_goal: 0,
     cleansheet: false,
+    minutes: null,
     ...overrides,
   }
 }

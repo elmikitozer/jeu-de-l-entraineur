@@ -305,7 +305,7 @@ export async function getPlayerHistory(
         goals: s.goals, assists: s.assists, motm: s.motm,
         yellow_cards: s.yellow_cards, red_cards: s.red_cards,
         penalty_saved: s.penalty_saved, penalty_scored: s.penalty_scored,
-        freekick_goal: s.freekick_goal, cleansheet: s.cleansheet,
+        freekick_goal: s.freekick_goal, cleansheet: s.cleansheet, minutes: null,
       },
       player.position
     )
@@ -341,7 +341,7 @@ export async function getLiveMatches(): Promise<Match[]> {
   const supabase = getClient()
   const { data } = await supabase
     .from('matches')
-    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts')
+    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts, minute, status_short')
     .eq('status', 'live')
     .order('date', { ascending: true })
   return (data ?? []) as unknown as Match[]
@@ -355,7 +355,7 @@ export async function getUpcomingMatches(limit = 5): Promise<Match[]> {
   // Uniquement les matchs à venir, non démarrés (les live ont leur propre bloc)
   const { data } = await supabase
     .from('matches')
-    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts')
+    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts, minute, status_short')
     .gte('date', now)
     .eq('status', 'scheduled')
     .order('date', { ascending: true })
@@ -369,7 +369,7 @@ export async function getAllMatches(): Promise<Match[]> {
   const supabase = getClient()
   const { data, error } = await supabase
     .from('matches')
-    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts')
+    .select('id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts, minute, status_short')
     .order('date', { ascending: true })
   if (error) console.error('[getAllMatches]', error.message)
   return (data ?? []) as unknown as Match[]
@@ -584,6 +584,7 @@ export interface MatchLineupPlayer {
   motm: boolean
   red: boolean
   points: number
+  minutes: number | null
 }
 
 /** Points fantasy générés par un joueur sur ce match (calcul live depuis player_stats). */
@@ -622,7 +623,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
   const supabase = getClient()
 
   const matchCols =
-    'id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts'
+    'id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts, minute, status_short'
 
   const [{ data: matchRow }, { data: allMatches }] = await Promise.all([
     supabase.from('matches').select(matchCols).eq('id', matchId).single(),
@@ -642,7 +643,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
   const { data: statRows } = await supabase
     .from('player_stats')
     .select(
-      'player_id, played, result, goals, assists, motm, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, ' +
+      'player_id, played, result, goals, assists, motm, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, minutes, ' +
         'players(id, name, nationality, nationality_code, position, photo_url)'
     )
     .eq('match_id', matchId)
@@ -660,6 +661,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
     penalty_scored: number
     freekick_goal: number
     cleansheet: boolean
+    minutes: number | null
     players: {
       id: string
       name: string
@@ -722,7 +724,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
         goals: s.goals, assists: s.assists, motm: s.motm,
         yellow_cards: s.yellow_cards, red_cards: s.red_cards,
         penalty_saved: s.penalty_saved, penalty_scored: s.penalty_scored,
-        freekick_goal: s.freekick_goal, cleansheet: s.cleansheet,
+        freekick_goal: s.freekick_goal, cleansheet: s.cleansheet, minutes: s.minutes,
       },
       p.position
     )
@@ -732,6 +734,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
       photo_url: p.photo_url, played: s.played,
       goals: s.goals, assists: s.assists, motm: s.motm, red: s.red_cards > 0,
       points: scoring.total,
+      minutes: s.minutes,
     }
     ;(side === 'home' ? home : away).push(lineupEntry)
 
@@ -853,7 +856,7 @@ export async function getTeamDetail(code: string): Promise<TeamDetail | null> {
     ),
     fetchAll<Match>(
       supabase, 'matches',
-      'id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts'
+      'id, api_match_id, home_team, away_team, home_score, away_score, date, venue, stage, status, last_verified_at, sync_attempts, minute, status_short'
     ),
   ])
 
@@ -915,7 +918,7 @@ export async function getTeamDetail(code: string): Promise<TeamDetail | null> {
         id: '', player_id: s.player_id, match_id: s.match_id, played: s.played,
         result: s.result, goals: s.goals, assists: s.assists, motm: s.motm,
         yellow_cards: s.yellow_cards, red_cards: s.red_cards, penalty_saved: s.penalty_saved,
-        penalty_scored: s.penalty_scored, freekick_goal: s.freekick_goal, cleansheet: s.cleansheet,
+        penalty_scored: s.penalty_scored, freekick_goal: s.freekick_goal, cleansheet: s.cleansheet, minutes: null,
       },
       pos
     )

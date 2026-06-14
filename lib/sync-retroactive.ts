@@ -69,6 +69,7 @@ export async function syncRetroactive(participantId: string): Promise<number> {
       penalty_scored: raw.penalty_scored as number,
       freekick_goal: raw.freekick_goal as number,
       cleansheet: raw.cleansheet as boolean,
+      minutes: (raw.minutes as number | null) ?? null,
     }
 
     const scoring = calculatePlayerPoints(stats, position)

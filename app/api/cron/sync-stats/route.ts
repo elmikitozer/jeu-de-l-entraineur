@@ -3,6 +3,17 @@ import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { syncMatch } from '@/lib/sync-engine'
 import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
+import { generateDailyRecapIfNeeded } from '@/lib/recap'
+
+/** Génère la chronique du soir si une journée vient de se terminer (best-effort). */
+async function tryRecap(supabase: ReturnType<typeof getSupabase>): Promise<boolean> {
+  try {
+    return (await generateDailyRecapIfNeeded(supabase)).generated
+  } catch (err) {
+    console.error('[cron] recap', err instanceof Error ? err.message : String(err))
+    return false
+  }
+}
 
 // Fenêtre live : 5 min avant le coup d'envoi → kickoff + 2h45.
 // Pendant cette fenêtre, le match est sondé à chaque minute (vrai temps réel).
@@ -97,7 +108,8 @@ export async function GET(request: NextRequest) {
   const toSyncIds = Array.from(toSync)
 
   if (toSyncIds.length === 0) {
-    return NextResponse.json({ synced: 0, matchesProcessed: 0, errors: [] })
+    const recapGenerated = await tryRecap(supabase)
+    return NextResponse.json({ synced: 0, matchesProcessed: 0, recapGenerated, errors: [] })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -120,9 +132,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const recapGenerated = await tryRecap(supabase)
+
   return NextResponse.json({
     synced: playersUpdated,
     matchesProcessed: toSyncIds.length,
+    recapGenerated,
     errors,
     timestamp: now.toISOString(),
   })

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getLeaderboard, getUpcomingMatches, getLiveMatches } from '@/lib/queries'
+import { getLeaderboard, getUpcomingMatches, getLiveMatches, getLatestRecap } from '@/lib/queries'
 import PodiumCard from '@/components/PodiumCard'
 import MatchCard from '@/components/MatchCard'
 import LiveMatchCard from '@/components/LiveMatchCard'
@@ -7,14 +7,16 @@ import PelouseBackground from '@/components/PelouseBackground'
 import LeaderboardTableAnimated from '@/components/LeaderboardTableAnimated'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
 import ShareButton from '@/components/ShareButton'
+import RecapShare from '@/components/RecapShare'
 
 export const revalidate = 60
 
 export default async function LeaderboardPage() {
-  const [leaderboard, upcoming, live] = await Promise.all([
+  const [leaderboard, upcoming, live, recap] = await Promise.all([
     getLeaderboard(),
     getUpcomingMatches(5),
     getLiveMatches(),
+    getLatestRecap(),
   ])
 
   const top3 = leaderboard.slice(0, 3)
@@ -122,6 +124,33 @@ export default async function LeaderboardPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* ── Chronique du soir (IA) ── */}
+        {recap && (
+          <div className="mt-9">
+            <div className="flex items-baseline gap-3 mb-3.5">
+              <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em]" style={{ color: 'var(--c-lime)' }}>
+                La chronique du soir
+              </h2>
+              <div className="ml-auto">
+                <RecapShare text={recap.content} />
+              </div>
+            </div>
+            <div
+              className="rounded-2xl px-5 md:px-7 py-5 text-white"
+              style={{
+                background: 'var(--c-card-overlay)',
+                border: '1px solid var(--c-card-border)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <p className="text-[15px] md:text-[16px] font-body leading-relaxed italic" style={{ color: 'var(--c-ink)' }}>
+                {recap.content}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* ── Matchs en cours ── */}

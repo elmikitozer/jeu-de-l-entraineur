@@ -1078,6 +1078,20 @@ export async function getTeamDetail(code: string): Promise<TeamDetail | null> {
   }
 }
 
+// ── getLatestRecap (chronique du soir) ─────────────────────────────────────────
+
+export async function getLatestRecap(): Promise<{ date: string; content: string } | null> {
+  const supabase = getClient()
+  const { data } = await supabase
+    .from('daily_recaps')
+    .select('recap_date, content')
+    .order('recap_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  return { date: data.recap_date as string, content: data.content as string }
+}
+
 // ── getNationsIndex (recherche) ────────────────────────────────────────────────
 
 export interface NationIndexEntry {

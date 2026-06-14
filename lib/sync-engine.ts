@@ -11,6 +11,7 @@ import {
   fetchLiveMatchStats,
   fetchFinalMatchStats,
   fetchFixtureResult,
+  fetchMatchEvents,
   type RawPlayerStats,
 } from './api-football'
 import type { Position, PointsBreakdown, PlayerStats } from './types'
@@ -230,6 +231,29 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
     }
 
     updatedPlayerIds.push(ourPlayer.id)
+  }
+
+  // ── 5b. Timeline horodatée (match_events) ─────────────────────────────────
+  // Remplace l'ensemble des événements du match (delete + insert) → idempotent.
+  // Stocke tous les buteurs/cartons ; player_id lié si le joueur est dans le pool.
+  try {
+    const rawEvents = await fetchMatchEvents(apiMatchId)
+    await supabase.from('match_events').delete().eq('match_id', matchId)
+    if (rawEvents.length > 0) {
+      const rows = rawEvents.map((e) => ({
+        match_id: matchId,
+        player_id: e.apiPlayerId != null ? apiIdToPlayer.get(e.apiPlayerId)?.id ?? null : null,
+        player_name: e.playerName,
+        type: e.type,
+        side: e.side,
+        minute: e.minute,
+        extra: e.extra,
+      }))
+      const { error: evErr } = await supabase.from('match_events').insert(rows)
+      if (evErr) errors.push(`match_events insert: ${evErr.message}`)
+    }
+  } catch (err) {
+    errors.push(`fetchMatchEvents: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   // ── 6. Recalcul total_points des participants affectés ────────────────────

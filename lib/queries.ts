@@ -561,13 +561,17 @@ export async function getGlobalStats(): Promise<GlobalStats> {
 
 // ── getMatchDetail ────────────────────────────────────────────────────────────
 
-/** Un événement de match dérivé de player_stats (l'API ne sync pas la minute). */
+/**
+ * Un événement de match. Source primaire : table match_events (horodatée, tous
+ * joueurs). Fallback : dérivé de player_stats agrégés (count>1 possible, minute null).
+ */
 export interface MatchEvent {
   type: 'goal' | 'freekick' | 'penalty' | 'assist' | 'yellow' | 'red' | 'penalty_saved'
   side: 'home' | 'away'
-  playerId: string
+  playerId: string | null
   playerName: string
-  position: Position
+  minute: number | null
+  extra: number | null
   count: number
 }
 
@@ -689,7 +693,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
 
   const home: MatchLineupPlayer[] = []
   const away: MatchLineupPlayer[] = []
-  const events: MatchEvent[] = []
+  let events: MatchEvent[] = []
   const fantasy: MatchFantasyEntry[] = []
 
   // Quels joueurs sont sélectionnés par quels participants (pour l'impact + "selectedBy")
@@ -741,13 +745,13 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
     // Événements dérivés (uniquement si le joueur a effectivement joué)
     if (s.played) {
       const normalGoals = s.goals - s.freekick_goal - s.penalty_scored
-      if (normalGoals > 0) events.push({ type: 'goal', side, playerId: p.id, playerName: p.name, position: p.position, count: normalGoals })
-      if (s.freekick_goal > 0) events.push({ type: 'freekick', side, playerId: p.id, playerName: p.name, position: p.position, count: s.freekick_goal })
-      if (s.penalty_scored > 0) events.push({ type: 'penalty', side, playerId: p.id, playerName: p.name, position: p.position, count: s.penalty_scored })
-      if (s.assists > 0) events.push({ type: 'assist', side, playerId: p.id, playerName: p.name, position: p.position, count: s.assists })
-      if (s.red_cards > 0) events.push({ type: 'red', side, playerId: p.id, playerName: p.name, position: p.position, count: s.red_cards })
-      if (s.yellow_cards > 0) events.push({ type: 'yellow', side, playerId: p.id, playerName: p.name, position: p.position, count: s.yellow_cards })
-      if (s.penalty_saved > 0) events.push({ type: 'penalty_saved', side, playerId: p.id, playerName: p.name, position: p.position, count: s.penalty_saved })
+      if (normalGoals > 0) events.push({ type: 'goal', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: normalGoals })
+      if (s.freekick_goal > 0) events.push({ type: 'freekick', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.freekick_goal })
+      if (s.penalty_scored > 0) events.push({ type: 'penalty', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.penalty_scored })
+      if (s.assists > 0) events.push({ type: 'assist', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.assists })
+      if (s.red_cards > 0) events.push({ type: 'red', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.red_cards })
+      if (s.yellow_cards > 0) events.push({ type: 'yellow', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.yellow_cards })
+      if (s.penalty_saved > 0) events.push({ type: 'penalty_saved', side, playerId: p.id, playerName: p.name, minute: null, extra: null, count: s.penalty_saved })
     }
 
     // Section fantasy : tout joueur du pool qui a marqué/perdu des points
@@ -777,6 +781,37 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
   away.sort(byImpact)
 
   events.sort((a, b) => EVENT_ORDER[a.type] - EVENT_ORDER[b.type] || a.playerName.localeCompare(b.playerName))
+
+  // Timeline horodatée : si des match_events existent, ils priment (minutes +
+  // ordre chronologique réels, tous joueurs) ; sinon on garde les événements
+  // dérivés ci-dessus (sans minute) — pas de régression sur les matchs anciens.
+  const { data: eventRows } = await supabase
+    .from('match_events')
+    .select('player_id, player_name, type, side, minute, extra')
+    .eq('match_id', matchId)
+    .order('minute', { ascending: true, nullsFirst: false })
+    .order('extra', { ascending: true, nullsFirst: true })
+
+  if (eventRows && eventRows.length > 0) {
+    type RawEvent = {
+      player_id: string | null
+      player_name: string
+      type: MatchEvent['type']
+      side: 'home' | 'away'
+      minute: number | null
+      extra: number | null
+    }
+    events = (eventRows as unknown as RawEvent[]).map((r) => ({
+      type: r.type,
+      side: r.side,
+      playerId: r.player_id,
+      playerName: r.player_name,
+      minute: r.minute,
+      extra: r.extra,
+      count: 1,
+    }))
+  }
+
   fantasy.sort((a, b) => b.points - a.points || a.player.name.localeCompare(b.player.name))
 
   const rankingImpact = Array.from(impact.values()).sort((a, b) => b.delta - a.delta)

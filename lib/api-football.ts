@@ -39,6 +39,16 @@ export interface FixtureResult {
   elapsed: number | null    // minute de jeu courante (status.elapsed)
 }
 
+/** Événement de match horodaté, pour la timeline chronologique. */
+export interface RawMatchEvent {
+  apiPlayerId: number | null
+  playerName: string
+  type: 'goal' | 'freekick' | 'penalty' | 'assist' | 'yellow' | 'red'
+  side: 'home' | 'away'
+  minute: number | null
+  extra: number | null
+}
+
 // ── Types internes (réponses API-Football) ───────────────────────────────────
 
 interface AF_Event {
@@ -407,6 +417,47 @@ export async function fetchLiveFixtureIds(): Promise<Set<number>> {
     }
   }
   return ids
+}
+
+/**
+ * Événements horodatés d'un match (buts, coups francs, penalties, passes, cartons),
+ * pour TOUS les joueurs (pas seulement le pool fantasy). Source : fixture.events
+ * (déjà présent dans le payload /fixtures). On laisse de côté les CSC et penalties
+ * manqués, ainsi que les penalties arrêtés (pas d'horodatage fiable côté events).
+ *
+ * Note : appel /fixtures?id séparé ici ; à terme, mutualiser les multiples appels
+ * /fixtures?id du cycle de sync en une seule requête.
+ */
+export async function fetchMatchEvents(apiMatchId: number): Promise<RawMatchEvent[]> {
+  const data = await apiFetch<AF_FixtureResponse>(`/fixtures?id=${apiMatchId}`)
+  const fixture = data.response?.[0]
+  if (!fixture) return []
+  const homeId = fixture.teams.home.id
+  const out: RawMatchEvent[] = []
+
+  for (const e of fixture.events ?? []) {
+    const side: 'home' | 'away' = e.team.id === homeId ? 'home' : 'away'
+    const minute = e.time?.elapsed ?? null
+    const extra = e.time?.extra ?? null
+
+    if (e.type === 'Goal') {
+      if (e.detail === 'Own Goal' || e.detail === 'Missed Penalty') continue
+      const type: RawMatchEvent['type'] =
+        e.detail === 'Penalty' ? 'penalty' : e.detail === 'Free Kick' ? 'freekick' : 'goal'
+      out.push({ apiPlayerId: e.player.id ?? null, playerName: e.player.name, type, side, minute, extra })
+      if (e.assist?.id || e.assist?.name) {
+        out.push({ apiPlayerId: e.assist.id ?? null, playerName: e.assist.name ?? '—', type: 'assist', side, minute, extra })
+      }
+    } else if (e.type === 'Card') {
+      if (e.detail === 'Yellow Card') {
+        out.push({ apiPlayerId: e.player.id ?? null, playerName: e.player.name, type: 'yellow', side, minute, extra })
+      } else if (e.detail === 'Red Card' || e.detail === 'Second Yellow card') {
+        out.push({ apiPlayerId: e.player.id ?? null, playerName: e.player.name, type: 'red', side, minute, extra })
+      }
+    }
+  }
+
+  return out
 }
 
 /**

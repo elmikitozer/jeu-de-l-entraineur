@@ -60,16 +60,26 @@ function EventNode({ event }: { event: MatchEvent }) {
   const meta = META[event.type]
   const isHome = event.side === 'home'
 
+  const minuteLabel = event.minute != null ? `${event.minute}${event.extra ? `+${event.extra}` : ''}'` : null
+  const nameInner = (
+    <>
+      {event.playerName}
+      {event.count > 1 && <span className="text-sub"> ×{event.count}</span>}
+    </>
+  )
+  const nameCls = 'font-display font-bold italic text-[17px] md:text-[19px] text-white leading-tight'
+
   const content = (
     <div className={`flex flex-col ${isHome ? 'md:items-end md:text-right' : 'md:items-start md:text-left'}`}>
-      <Link
-        href={`/players/${event.playerId}`}
-        className="font-display font-bold italic text-[17px] md:text-[19px] text-white hover:opacity-75 transition-opacity leading-tight"
-      >
-        {event.playerName}
-        {event.count > 1 && <span className="text-sub"> ×{event.count}</span>}
-      </Link>
+      {event.playerId ? (
+        <Link href={`/players/${event.playerId}`} className={`${nameCls} hover:opacity-75 transition-opacity`}>
+          {nameInner}
+        </Link>
+      ) : (
+        <span className={nameCls}>{nameInner}</span>
+      )}
       <span className="text-[11px] font-bold font-body tracking-[0.08em] uppercase" style={{ color: meta.color }}>
+        {minuteLabel && <span className="text-white">{minuteLabel} · </span>}
         {meta.label}
       </span>
     </div>

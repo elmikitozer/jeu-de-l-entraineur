@@ -6,6 +6,7 @@ import LiveMatchCard from '@/components/LiveMatchCard'
 import PelouseBackground from '@/components/PelouseBackground'
 import LeaderboardTableAnimated from '@/components/LeaderboardTableAnimated'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
+import ShareButton from '@/components/ShareButton'
 
 export const revalidate = 60
 
@@ -45,6 +46,11 @@ export default async function LeaderboardPage() {
             <h1 className="mt-2 font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
               Classement<br />général
             </h1>
+            {!empty && (
+              <div className="mt-4">
+                <ShareButton />
+              </div>
+            )}
           </div>
 
           {/* Cagnotte */}

@@ -16,9 +16,15 @@ type SB = ReturnType<typeof createServiceClient>
 
 const MODEL = 'claude-sonnet-4-6'
 
-const SYSTEM_PROMPT = `Tu es le chroniqueur d'une ligue de fantasy football entre 15 amis, sur la Coupe du Monde 2026.
-Écris la chronique du soir : 2 à 4 phrases, en français, ton de commentateur sarcastique et affectueux — mordant mais jamais méchant, comme un pote qui chambre.
-Utilise les vrais prénoms des participants. Pas d'emoji. Pas de titre, pas de préambule : directement la chronique.`
+const SYSTEM_PROMPT = `Tu es le commentateur sarcastique et affectueux d'un jeu de fantasy football entre amis, sur la Coupe du Monde 2026.
+
+Le jeu : chaque participant a sélectionné 11 vrais joueurs avant le tournoi. Il marque des points selon les performances INDIVIDUELLES de ses joueurs — but, passe décisive, homme du match, clean sheet du gardien, carton — et PAS selon le résultat des matchs.
+
+Écris la chronique du soir en français, 3 à 4 phrases, mordante mais jamais méchante, dans le style d'un pote qui chambre. Centre-la sur les joueurs qui ont rapporté ou coûté des points à leurs propriétaires fantasy — pas sur le score des rencontres.
+
+Bon angle : « le but de Quiñones a fait le bonheur de Gregoire » plutôt que « le Mexique a écrasé l'Afrique du Sud ».
+
+Utilise les vrais prénoms des participants. Pas d'emoji. Pas de titre ni de préambule : écris directement la chronique.`
 
 /** Appel Messages API (claude-sonnet-4-6, 200 tokens). Renvoie le texte ou null. */
 async function callClaude(userPrompt: string): Promise<string | null> {
@@ -112,15 +118,9 @@ export async function generateDailyRecapIfNeeded(
   if (existing) return { generated: false }
 
   // ── Données de la journée ────────────────────────────────────────────────
-  const dayMatches = byDay.get(day)!
-  const results = dayMatches.map(
-    (m) =>
-      `${TEAM_NAME_FR[m.home_team] ?? m.home_team} ${m.home_score ?? 0}-${m.away_score ?? 0} ${
-        TEAM_NAME_FR[m.away_team] ?? m.away_team
-      }`
-  )
+  const dayMatchIds = byDay.get(day)!.map((m) => m.id)
 
-  const dayMatchIds = dayMatches.map((m) => m.id)
+  // Points gagnés/perdus aujourd'hui par participant
   const { data: logs } = await supabase
     .from('points_log')
     .select('participant_id, total_points')
@@ -141,21 +141,70 @@ export async function generateDailyRecapIfNeeded(
   const movers = Array.from(gain.entries())
     .filter(([, v]) => v !== 0)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
     .map(([id, v]) => `${nameById.get(id) ?? '?'} ${v > 0 ? '+' : ''}${v}`)
 
-  const leader = parts[0]
+  // Performances individuelles du jour (le cœur du jeu) + propriétaires fantasy
+  type StatRow = {
+    player_id: string
+    goals: number
+    assists: number
+    motm: boolean
+    red_cards: number
+    cleansheet: boolean
+    players: { name: string; nationality: string; position: string } | null
+  }
+  const { data: statRows } = await supabase
+    .from('player_stats')
+    .select('player_id, goals, assists, motm, red_cards, cleansheet, players(name, nationality, position)')
+    .in('match_id', dayMatchIds)
+  const notable = ((statRows ?? []) as unknown as StatRow[]).filter(
+    (s) =>
+      s.goals > 0 ||
+      s.assists > 0 ||
+      s.motm ||
+      s.red_cards > 0 ||
+      (s.cleansheet && s.players?.position === 'GK')
+  )
+
+  // Propriétaires fantasy de ces joueurs (qui les a sélectionnés)
+  const notableIds = notable.map((s) => s.player_id)
+  const { data: ownerRows } = notableIds.length
+    ? await supabase.from('teams').select('player_id, participants(name)').in('player_id', notableIds)
+    : { data: [] as unknown[] }
+  const ownersByPlayer = new Map<string, string[]>()
+  for (const t of (ownerRows ?? []) as unknown as Array<{ player_id: string; participants: { name: string } | null }>) {
+    const arr = ownersByPlayer.get(t.player_id) ?? []
+    if (t.participants?.name) arr.push(t.participants.name)
+    ownersByPlayer.set(t.player_id, arr)
+  }
+
+  const perfLines = notable.map((s) => {
+    const p = s.players
+    const acts: string[] = []
+    if (s.goals > 0) acts.push(`${s.goals} but${s.goals > 1 ? 's' : ''}`)
+    if (s.assists > 0) acts.push(`${s.assists} passe${s.assists > 1 ? 's' : ''} décisive${s.assists > 1 ? 's' : ''}`)
+    if (s.motm) acts.push('homme du match')
+    if (s.cleansheet && p?.position === 'GK') acts.push('clean sheet')
+    if (s.red_cards > 0) acts.push('carton rouge')
+    const owners = ownersByPlayer.get(s.player_id) ?? []
+    const nat = p ? TEAM_NAME_FR[p.nationality] ?? p.nationality : '?'
+    return `- ${p?.name ?? '?'} (${nat}) : ${acts.join(', ')} — ${owners.length ? owners.join(', ') : 'personne'}`
+  })
+
+  const standings = parts.map((p, i) => `${i + 1}. ${p.name} ${p.total_points}`)
 
   const userPrompt = [
-    `Résultats du jour :`,
-    results.join('\n') || '(aucun match)',
+    `Performances individuelles du jour (joueur — fait — propriétaire(s) fantasy) :`,
+    perfLines.join('\n') || '(aucune performance notable)',
     ``,
-    `Gains fantasy du jour (participant : points) :`,
-    movers.join('\n') || '(personne n\'a marqué de points)',
+    `Points gagnés/perdus aujourd'hui :`,
+    movers.join('\n') || "(personne n'a marqué de points)",
     ``,
-    `Leader actuel au classement : ${leader ? `${leader.name} (${leader.total_points} pts)` : 'n/a'}`,
+    `Classement général :`,
+    standings.join('\n'),
   ].join('\n')
 
+  // console.log('[recap-debug] USER PROMPT:\n' + userPrompt + '\n[/recap-debug]')
   const content = await callClaude(userPrompt)
   if (!content) return { generated: false }
 

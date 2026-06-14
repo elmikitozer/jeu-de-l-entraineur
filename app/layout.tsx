@@ -7,6 +7,7 @@ import MobileMenu from '@/components/MobileMenu';
 import NavLinks from '@/components/NavLinks';
 import PulseDot from '@/components/PulseDot';
 import SearchOverlay from '@/components/SearchOverlay';
+import LiveScoreBar from '@/components/LiveScoreBar';
 
 const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
@@ -100,6 +101,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
           {/* Ligne lime 2px */}
           <div className="h-0.5" style={{ background: 'var(--c-nav-dot)' }} />
+          {/* Barre score live (mobile) — rien si aucun match en cours */}
+          <LiveScoreBar />
         </header>
 
         {/* ── Contenu ── */}

@@ -132,4 +132,6 @@ body {
   .text-balance { text-wrap: balance; }
   .font-display { font-family: var(--font-display, "Barlow Condensed", sans-serif); }
   .font-body    { font-family: var(--font-body,    "Space Grotesk",     sans-serif); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }

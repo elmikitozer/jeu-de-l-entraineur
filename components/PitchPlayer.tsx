@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import LiveBadge from './LiveBadge'
+import LiveDot from './LiveDot'
 import Flag from './Flag'
 import { TEAM_COLORS } from '@/lib/flags'
 
@@ -39,8 +39,8 @@ export default function PitchPlayer({ name, nationality, photoUrl, points, isLiv
     // Slot : 36px mobile, 44px desktop — le texte peut déborder latéralement
     <div className="flex flex-col items-center gap-[3px] relative w-9 md:w-11" style={{ minWidth: 0 }}>
       {isLive && (
-        <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
-          <LiveBadge small />
+        <span className="absolute -top-1 -right-1 z-10">
+          <LiveDot />
         </span>
       )}
 

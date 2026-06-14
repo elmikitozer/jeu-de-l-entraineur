@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Avatar from './Avatar'
-import LiveBadge from './LiveBadge'
+import LiveDot from './LiveDot'
 import Flag from './Flag'
 import type { TeamLine } from '@/lib/queries'
 import { TEAM_NAME_FR } from '@/lib/flags'
@@ -105,7 +105,7 @@ export default function RosterSidebar({ lines }: Props) {
                       <span className="text-[13px] font-semibold font-body text-ink truncate">
                         {player.name}
                       </span>
-                      {player.isLive && <LiveBadge small />}
+                      {player.isLive && <LiveDot />}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Flag teamName={player.nationality} size="16x12" />

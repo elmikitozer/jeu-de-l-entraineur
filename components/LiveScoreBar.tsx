@@ -11,9 +11,8 @@ import { FIFA_CODE } from '@/lib/flags'
  * fetch + souscription Realtime sur `matches` + fallback polling 60s, donc live
  * sur toutes les pages (indépendante du RealtimeRefresh par page).
  *
- * Pas de minute affichée : le schéma ne stocke pas le temps de jeu et la dériver
- * du coup d'envoi serait faux (mi-temps, arrêts de jeu). La pastille rouge
- * pulsante porte le signal "en direct".
+ * Affiche le chrono de jeu (matches.minute / status_short) : "67'" en cours,
+ * "MT" à la mi-temps. Pastille rouge pulsante pour le signal "en direct".
  */
 type LiveRow = {
   id: string

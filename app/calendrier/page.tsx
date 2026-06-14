@@ -57,6 +57,13 @@ function StageBadge({ stage }: { stage: string | null }) {
   )
 }
 
+/** Chrono d'un match live : "13'" en jeu, "MT" à la mi-temps, rien sinon. */
+function liveClock(match: Match): string | null {
+  if (match.status_short === 'HT') return 'MT'
+  if (match.minute != null) return `${match.minute}'`
+  return null
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === 'live') return <LiveBadge />
   if (status === 'finished') {
@@ -189,6 +196,14 @@ export default async function CalendrierPage() {
                       <div className="flex items-center justify-center gap-1.5">
                         <StageBadge stage={match.stage} />
                         {isLive && <StatusBadge status="live" />}
+                        {isLive && liveClock(match) && (
+                          <span
+                            className="text-[11px] font-bold font-body tabular-nums"
+                            style={{ color: 'var(--c-lime)' }}
+                          >
+                            {liveClock(match)}
+                          </span>
+                        )}
                         {match.status === 'finished' && <StatusBadge status="finished" />}
                       </div>
 

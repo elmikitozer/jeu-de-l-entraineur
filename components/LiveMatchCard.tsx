@@ -5,6 +5,8 @@ import Flag from '@/components/Flag'
 export default function LiveMatchCard({ match }: { match: Match }) {
   const homeName = TEAM_NAME_FR[match.home_team] ?? match.home_team
   const awayName = TEAM_NAME_FR[match.away_team] ?? match.away_team
+  // Chrono live : "13'" en jeu, "MT" à la mi-temps
+  const clock = match.status_short === 'HT' ? 'MT' : match.minute != null ? `${match.minute}'` : null
 
   return (
     <div
@@ -26,7 +28,7 @@ export default function LiveMatchCard({ match }: { match: Match }) {
             <span className="absolute inset-0 rounded-full" style={{ background: 'rgba(239,68,68,0.5)', animation: 'pulse-ring 1.5s ease-out infinite' }} />
             <span className="absolute inset-0 rounded-full" style={{ background: '#EF4444' }} />
           </span>
-          Live
+          {clock ? `Live · ${clock}` : 'Live'}
         </span>
       </div>
 

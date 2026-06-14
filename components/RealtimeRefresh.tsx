@@ -4,15 +4,6 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
-/**
- * Souscrit à Supabase Realtime sur les tables mises à jour par le moteur de sync.
- * À chaque changement, rafraîchit les Server Components (router.refresh, debounced)
- * et émet un CustomEvent('je:realtime') que l'indicateur "Mis à jour" écoute pour
- * se remettre à zéro.
- *
- * Prérequis : tables ajoutées à la publication supabase_realtime
- * (voir supabase/migrations/002_enable_realtime.sql).
- */
 export default function RealtimeRefresh({
   tables = ['points_log', 'player_stats', 'matches'],
 }: {
@@ -27,26 +18,33 @@ export default function RealtimeRefresh({
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    const onChange = () => {
-      // Signale immédiatement l'event (reset de l'indicateur) sans attendre le refetch
-      window.dispatchEvent(new CustomEvent('je:realtime'))
-      // Debounce le refresh : une rafale d'events (but + passe + carton) = 1 seul refetch
+    const doRefresh = () => router.refresh()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onChange = (payload: any) => {
+      // Transmet le matchId si la mise à jour concerne la table matches
+      const matchId: string | undefined =
+        payload?.table === 'matches' && typeof payload?.new?.id === 'string'
+          ? payload.new.id
+          : undefined
+      window.dispatchEvent(new CustomEvent('je:realtime', { detail: { matchId } }))
+      // Debounce : une rafale d'events (but + passe + carton) = 1 seul refetch
       if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => router.refresh(), 600)
+      debounceRef.current = setTimeout(doRefresh, 2000)
     }
 
     const channel = supabase.channel('je-public-live')
     for (const table of tables) {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table },
-        onChange
-      )
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, onChange)
     }
     channel.subscribe()
 
+    // Fallback polling si Realtime se déconnecte
+    const pollId = setInterval(doRefresh, 60_000)
+
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      clearInterval(pollId)
       supabase.removeChannel(channel)
     }
   }, [router, tables])

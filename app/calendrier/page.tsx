@@ -5,6 +5,7 @@ import LiveBadge from '@/components/LiveBadge'
 import Flag from '@/components/Flag'
 import LocalTime from '@/components/LocalTime'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
+import MatchFlashListener from '@/components/MatchFlashListener'
 import { TEAM_NAME_FR } from '@/lib/flags'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -122,6 +123,7 @@ export default async function CalendrierPage() {
   return (
     <div className="max-w-[860px] mx-auto px-4 md:px-12 pb-16">
       <RealtimeRefresh />
+      <MatchFlashListener />
       <div className="pt-10 mb-10">
         <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
           Matchs
@@ -164,6 +166,7 @@ export default async function CalendrierPage() {
                     <Link
                       key={match.id}
                       href={`/matches/${match.id}`}
+                      data-match-id={match.id}
                       className={[
                         'flex flex-col px-4 py-3 gap-1 transition-colors hover:bg-white/[0.06]',
                         isLive ? 'bg-red/5' : idx % 2 === 0 ? 'bg-card' : 'bg-zebra',

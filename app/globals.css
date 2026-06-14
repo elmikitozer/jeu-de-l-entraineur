@@ -116,6 +116,18 @@ body {
   100% { transform: scale(1.8); opacity: 0; }
 }
 
+@keyframes match-flash-bg {
+  0%   { background-color: rgba(200, 245, 66, 0); }
+  20%  { background-color: rgba(200, 245, 66, 0.12); }
+  100% { background-color: rgba(200, 245, 66, 0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .match-flash {
+    animation: match-flash-bg 0.9s ease-out;
+  }
+}
+
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .font-display { font-family: var(--font-display, "Barlow Condensed", sans-serif); }

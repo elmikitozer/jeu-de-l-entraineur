@@ -29,6 +29,21 @@ export const metadata: Metadata = {
   title: "Jeu de l'Entraîneur — CdM 2026",
   description:
     "La version 2026 du célèbre Jeu de l'Entraîneur, pour parier sur les résultats de la Coupe du Monde 2026.",
+  // Icônes + manifest servis par des route handlers (/api/*) au lieu des
+  // conventions de fichiers, qui ne buildent pas depuis un chemin contenant une
+  // apostrophe (« l'entraineur »).
+  manifest: '/api/manifest',
+  icons: {
+    icon: [{ url: '/api/icon', sizes: '512x512', type: 'image/png' }],
+    apple: [{ url: '/api/apple-icon', sizes: '180x180', type: 'image/png' }],
+  },
+  // Mode "app" sur iPhone une fois ajouté à l'écran d'accueil (plein écran, sans
+  // la barre Safari).
+  appleWebApp: {
+    capable: true,
+    title: "Jeu de l'Entraîneur",
+    statusBarStyle: 'black',
+  },
 };
 
 export const viewport: Viewport = {

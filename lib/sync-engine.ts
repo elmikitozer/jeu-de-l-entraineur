@@ -16,6 +16,8 @@ import {
 } from './api-football'
 import type { Position, PointsBreakdown, PlayerStats } from './types'
 import { parseMatchDateUTC } from './datetime'
+import { fetchFifaMotm, matchEntryToFixture, bestNameMatch } from './fifa-motm'
+import { getCountryCode } from './flags'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,7 +84,7 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
 
   const { data: matchRow, error: matchErr } = await supabase
     .from('matches')
-    .select('id, api_match_id, date, status, sync_attempts')
+    .select('id, api_match_id, date, status, sync_attempts, home_team, away_team')
     .eq('id', matchId)
     .single()
 
@@ -142,11 +144,17 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   // enregistrés (buts, cartons, etc. perdus silencieusement).
 
   const PAGE = 1000
-  const ourPlayers: Array<{ id: string; position: string; api_football_id: number }> = []
+  const ourPlayers: Array<{
+    id: string
+    position: string
+    api_football_id: number
+    name: string
+    nationality: string
+  }> = []
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from('players')
-      .select('id, position, api_football_id')
+      .select('id, position, api_football_id, name, nationality')
       .not('api_football_id', 'is', null)
       .range(from, from + PAGE - 1)
     if (error) {
@@ -165,6 +173,42 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
     ])
   )
 
+  // ── 4 bis. MOTM officiel FIFA (override du proxy rating, jamais bloquant) ───
+  // On distingue :
+  //   officialAvailable    : FIFA a publié le MOTM de ce match (entrée trouvée)
+  //   officialMotmPlayerId : ce MOTM mappé dans NOTRE pool (null si hors pool)
+  // Si officialAvailable mais joueur hors pool → aucun joueur du pool ne reçoit
+  // le +3 (le proxy ne doit PAS reprendre la main : l'officiel prime).
+  let officialAvailable = false
+  let officialMotmPlayerId: string | null = null
+  if (mode === 'final' || mode === 'post-check') {
+    try {
+      const entries = await fetchFifaMotm()
+      const entry = matchEntryToFixture(
+        entries,
+        matchRow.home_team as string,
+        matchRow.away_team as string,
+        fixtureResult.homeScore,
+        fixtureResult.awayScore,
+      )
+      if (entry) {
+        officialAvailable = true
+        const natCode = getCountryCode(entry.nationality)
+        const candidates = ourPlayers
+          .filter((p) => getCountryCode(p.nationality) === natCode)
+          .map((p) => ({ id: p.id, name: p.name }))
+        officialMotmPlayerId = bestNameMatch(entry.player, candidates)
+        if (!officialMotmPlayerId) {
+          // Hors pool ou non mappé : tracé pour inspection (proxy reste visible séparément)
+          errors.push(`MOTM FIFA hors pool/non mappé : ${entry.player} (${entry.nationality})`)
+        }
+      }
+    } catch (err) {
+      // Fallback silencieux : on garde le proxy rating (raw.motm)
+      errors.push(`fetchFifaMotm: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
   // ── 5. Upsert player_stats et recalcul des points ─────────────────────────
 
   const updatedPlayerIds: string[] = []
@@ -173,7 +217,16 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
     const ourPlayer = apiIdToPlayer.get(raw.playerId)
     if (!ourPlayer) continue // joueur non présent dans notre DB → ignorer
 
+    // MOTM : on conserve les deux sources EN PARALLÈLE.
+    //   motm_proxy    = meilleur rating algo (raw.motm)
+    //   motm_official = Player of the Match FIFA
+    //   motm (effectif, porteur du +3) = officiel si dispo pour le match, sinon proxy
+    const motmProxy = raw.motm
+    const motmOfficial = officialAvailable && ourPlayer.id === officialMotmPlayerId
+    const motmEffective = officialAvailable ? motmOfficial : motmProxy
+
     const statsForScoring = toPlayerStats(raw, matchId)
+    statsForScoring.motm = motmEffective
     const position = ourPlayer.position as Position
 
     // Upsert player_stats (UNIQUE sur player_id, match_id)
@@ -185,7 +238,9 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
         result: raw.played ? raw.result : null,
         goals: raw.goals,
         assists: raw.assists,
-        motm: raw.motm,
+        motm: motmEffective,
+        motm_proxy: motmProxy,
+        motm_official: motmOfficial,
         yellow_cards: raw.yellowCards,
         red_cards: raw.redCards,
         penalty_saved: raw.penaltySaved,

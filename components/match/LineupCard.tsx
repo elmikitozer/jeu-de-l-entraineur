@@ -57,7 +57,12 @@ function PlayerRow({ p, index }: { p: MatchLineupPlayer; index: number }) {
             {p.minutes != null && p.minutes > 0 && <span title="Minutes jouées">· {p.minutes}&apos;</span>}
             {p.goals > 0 && <span title="But(s)">· ⚽{p.goals > 1 ? `×${p.goals}` : ''}</span>}
             {p.assists > 0 && <span style={{ color: 'var(--c-blue)' }} title="Passe(s)">· →{p.assists > 1 ? `×${p.assists}` : ''}</span>}
-            {p.motm && <span style={{ color: 'var(--c-lime)' }} title="Homme du match">· MOTM</span>}
+            {/* MOTM : officiel prioritaire ; si les deux coïncident → un seul badge officiel */}
+            {p.motmOfficial ? (
+              <span style={{ color: 'var(--c-lime)' }} title="Player of the Match officiel FIFA">· ⭐ MOTM FIFA</span>
+            ) : p.motmProxy ? (
+              <span style={{ color: 'var(--c-blue)' }} title="Meilleur joueur (rating algo)">· 📊 Meilleur joueur</span>
+            ) : null}
             {p.red && <span className="inline-block w-2 h-3 rounded-[1px] align-middle" style={{ background: 'var(--c-red)' }} title="Carton rouge" />}
           </span>
         </div>

@@ -608,7 +608,9 @@ export interface MatchLineupPlayer {
   played: boolean
   goals: number
   assists: number
-  motm: boolean
+  motm: boolean          // effectif (porteur du +3) = officiel si dispo, sinon proxy
+  motmProxy: boolean     // meilleur joueur selon le rating algo
+  motmOfficial: boolean  // Player of the Match OFFICIEL FIFA
   red: boolean
   points: number
   minutes: number | null
@@ -670,7 +672,7 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
   const { data: statRows } = await supabase
     .from('player_stats')
     .select(
-      'player_id, played, result, goals, assists, motm, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, minutes, ' +
+      'player_id, played, result, goals, assists, motm, motm_proxy, motm_official, yellow_cards, red_cards, penalty_saved, penalty_scored, freekick_goal, cleansheet, minutes, ' +
         'players(id, name, nationality, nationality_code, position, photo_url)'
     )
     .eq('match_id', matchId)
@@ -682,6 +684,8 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
     goals: number
     assists: number
     motm: boolean
+    motm_proxy: boolean
+    motm_official: boolean
     yellow_cards: number
     red_cards: number
     penalty_saved: number
@@ -759,7 +763,9 @@ export async function getMatchDetail(matchId: string): Promise<MatchDetail | nul
     const lineupEntry: MatchLineupPlayer = {
       id: p.id, name: p.name, nationality: p.nationality, position: p.position,
       photo_url: p.photo_url, played: s.played,
-      goals: s.goals, assists: s.assists, motm: s.motm, red: s.red_cards > 0,
+      goals: s.goals, assists: s.assists,
+      motm: s.motm, motmProxy: s.motm_proxy, motmOfficial: s.motm_official,
+      red: s.red_cards > 0,
       points: scoring.total,
       minutes: s.minutes,
     }

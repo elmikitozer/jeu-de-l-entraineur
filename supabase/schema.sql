@@ -135,7 +135,9 @@ CREATE TABLE IF NOT EXISTS player_stats (
   result          TEXT    CHECK (result IN ('win', 'draw', 'loss')),
   goals           INTEGER NOT NULL DEFAULT 0,
   assists         INTEGER NOT NULL DEFAULT 0,
-  motm            BOOLEAN NOT NULL DEFAULT FALSE,
+  motm            BOOLEAN NOT NULL DEFAULT FALSE, -- MOTM effectif porteur du bonus +3 (officiel si dispo, sinon proxy)
+  motm_proxy      BOOLEAN NOT NULL DEFAULT FALSE, -- meilleur joueur selon le rating algo API-Football
+  motm_official   BOOLEAN NOT NULL DEFAULT FALSE, -- Player of the Match OFFICIEL FIFA (API FIFA+)
   yellow_cards    INTEGER NOT NULL DEFAULT 0,
   red_cards       INTEGER NOT NULL DEFAULT 0,
   penalty_saved   INTEGER NOT NULL DEFAULT 0,

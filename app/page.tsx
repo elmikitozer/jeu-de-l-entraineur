@@ -8,6 +8,7 @@ import LeaderboardTableAnimated from '@/components/LeaderboardTableAnimated'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
 import ShareButton from '@/components/ShareButton'
 import RecapShare from '@/components/RecapShare'
+import { formatRecapDate } from '@/lib/datetime'
 
 export const revalidate = 60
 
@@ -80,11 +81,17 @@ export default async function LeaderboardPage() {
         {/* ── Chronique du soir (IA) — mise en avant, avant le classement ── */}
         {recap && (
           <div className="mt-8">
-            <div className="flex items-baseline gap-3 mb-3.5">
-              <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em]" style={{ color: 'var(--c-lime)' }}>
-                La chronique du soir
-              </h2>
-              <div className="ml-auto">
+            <div className="flex items-start gap-3 mb-3.5">
+              <div className="flex flex-col gap-1.5 min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold font-body tracking-[0.14em] uppercase" style={{ color: 'var(--c-ink)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--c-lime)' }} />
+                  {formatRecapDate(recap.date)}
+                </span>
+                <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em] leading-[0.95]" style={{ color: 'var(--c-lime)' }}>
+                  La chronique du soir
+                </h2>
+              </div>
+              <div className="ml-auto flex-shrink-0">
                 <RecapShare text={recap.content} />
               </div>
             </div>

@@ -6,6 +6,7 @@ import Flag from '@/components/Flag'
 import LocalTime from '@/components/LocalTime'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
 import MatchFlashListener from '@/components/MatchFlashListener'
+import MatchAutoScroll from '@/components/MatchAutoScroll'
 import { TEAM_NAME_FR } from '@/lib/flags'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -127,10 +128,18 @@ export default async function CalendrierPage() {
   const matches = await getAllMatches()
   const days = groupByDay(matches)
 
+  // Cible du scroll auto : match live en cours, sinon dernier match terminé
+  // (matches triés par date ASC → le dernier 'finished' est le plus récent),
+  // sinon null = rester en haut.
+  const liveMatch = matches.find((m) => m.status === 'live')
+  const lastFinished = [...matches].reverse().find((m) => m.status === 'finished')
+  const scrollTargetId = liveMatch?.id ?? lastFinished?.id ?? null
+
   return (
     <div className="max-w-[860px] mx-auto px-4 md:px-12 pb-16">
       <RealtimeRefresh />
       <MatchFlashListener />
+      <MatchAutoScroll targetId={scrollTargetId} />
       <div className="pt-10 mb-10">
         <h1 className="font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
           Matchs

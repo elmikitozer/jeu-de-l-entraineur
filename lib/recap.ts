@@ -16,17 +16,15 @@ type SB = ReturnType<typeof createServiceClient>
 
 const MODEL = 'claude-sonnet-4-6'
 
-const SYSTEM_PROMPT = `Tu es le commentateur sarcastique et affectueux d'un jeu de fantasy football entre amis, sur la Coupe du Monde 2026.
+const SYSTEM_PROMPT = `Tu es le commentateur sarcastique et affectueux d'un jeu de fantasy football entre amis.
+Le jeu fonctionne ainsi : chaque participant a sélectionné 11 joueurs réels avant le tournoi. Il gagne des points selon les performances individuelles de ses joueurs (buts, passes décisives, cartons, cleansheet, MOTM...), pas selon les résultats des matchs.
+Rédige un récap de la journée en français correct et soutenu, 4-5 phrases complètes, mordant mais jamais méchant, centré sur les performances individuelles qui ont fait gagner ou perdre des points aux participants.
+Bon angle : 'Le but de Quinones a fait le bonheur de Gregoire' plutôt que 'Le Mexique a écrasé l'Afrique du Sud'.
+Utilise les vrais prénoms des participants. Pas d'emoji. Style chronique sportive de pote.
+Ne commence jamais par le nom d'un participant.
+Chaque phrase doit être grammaticalement complète — ne jamais s'arrêter en milieu de phrase.`
 
-Le jeu : chaque participant a sélectionné 11 vrais joueurs avant le tournoi. Il marque des points selon les performances INDIVIDUELLES de ses joueurs — but, passe décisive, homme du match, clean sheet du gardien, carton — et PAS selon le résultat des matchs.
-
-Écris la chronique du soir en français, 3 à 4 phrases, mordante mais jamais méchante, dans le style d'un pote qui chambre. Centre-la sur les joueurs qui ont rapporté ou coûté des points à leurs propriétaires fantasy — pas sur le score des rencontres.
-
-Bon angle : « le but de Quiñones a fait le bonheur de Gregoire » plutôt que « le Mexique a écrasé l'Afrique du Sud ».
-
-Utilise les vrais prénoms des participants. Pas d'emoji. Pas de titre ni de préambule : écris directement la chronique.`
-
-/** Appel Messages API (claude-sonnet-4-6, 200 tokens). Renvoie le texte ou null. */
+/** Appel Messages API (claude-sonnet-4-6, 600 tokens). Renvoie le texte ou null. */
 async function callClaude(userPrompt: string): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) {
@@ -45,7 +43,9 @@ async function callClaude(userPrompt: string): Promise<string | null> {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 200,
+        // 600 tokens : marge confortable pour 4-5 phrases complètes en français
+        // (~30 tokens/phrase) + clôture propre, sans jamais couper en plein milieu.
+        max_tokens: 600,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -107,28 +107,36 @@ export async function generateDailyRecapIfNeeded(
     .sort((a, b) => b.localeCompare(a))
   if (completeDays.length === 0) return { generated: false }
 
-  const day = completeDays[0]
-
-  // Déjà générée ?
-  const { data: existing } = await supabase
-    .from('daily_recaps')
-    .select('recap_date')
-    .eq('recap_date', day)
-    .maybeSingle()
-  if (existing) return { generated: false }
+  // On prend le jour complet le PLUS RÉCENT qui n'a pas encore de chronique —
+  // et pas seulement completeDays[0]. Sinon, un jour manqué (ex. erreur API ce
+  // soir-là) serait sauté définitivement dès que le lendemain est généré.
+  const { data: existingRecaps } = await supabase.from('daily_recaps').select('recap_date')
+  const done = new Set((existingRecaps ?? []).map((r) => r.recap_date as string))
+  const day = completeDays.find((d) => !done.has(d))
+  if (!day) return { generated: false }
 
   // ── Données de la journée ────────────────────────────────────────────────
   const dayMatchIds = byDay.get(day)!.map((m) => m.id)
 
-  // Points gagnés/perdus aujourd'hui par participant
+  // Points du jour : par participant (delta) ET par joueur (points générés).
   const { data: logs } = await supabase
     .from('points_log')
-    .select('participant_id, total_points')
+    .select('participant_id, player_id, match_id, total_points')
     .in('match_id', dayMatchIds)
 
   const gain = new Map<string, number>()
-  for (const l of (logs ?? []) as Array<{ participant_id: string; total_points: number }>) {
+  // player_id → (match_id → points) : dédoublonne entre propriétaires d'un même
+  // joueur (tous ont le même score pour ce match) puis somme sur la journée.
+  const playerMatchPts = new Map<string, Map<string, number>>()
+  for (const l of (logs ?? []) as Array<{ participant_id: string; player_id: string; match_id: string; total_points: number }>) {
     gain.set(l.participant_id, (gain.get(l.participant_id) ?? 0) + (l.total_points || 0))
+    let mm = playerMatchPts.get(l.player_id)
+    if (!mm) { mm = new Map(); playerMatchPts.set(l.player_id, mm) }
+    mm.set(l.match_id, l.total_points || 0)
+  }
+  const pointsByPlayer = new Map<string, number>()
+  for (const [pid, mm] of Array.from(playerMatchPts.entries())) {
+    pointsByPlayer.set(pid, Array.from(mm.values()).reduce((a, b) => a + b, 0))
   }
 
   const { data: participants } = await supabase
@@ -136,12 +144,6 @@ export async function generateDailyRecapIfNeeded(
     .select('id, name, total_points')
     .order('total_points', { ascending: false })
   const parts = (participants ?? []) as Array<{ id: string; name: string; total_points: number }>
-  const nameById = new Map(parts.map((p) => [p.id, p.name]))
-
-  const movers = Array.from(gain.entries())
-    .filter(([, v]) => v !== 0)
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, v]) => `${nameById.get(id) ?? '?'} ${v > 0 ? '+' : ''}${v}`)
 
   // Performances individuelles du jour (le cœur du jeu) + propriétaires fantasy
   type StatRow = {
@@ -188,20 +190,23 @@ export async function generateDailyRecapIfNeeded(
     if (s.red_cards > 0) acts.push('carton rouge')
     const owners = ownersByPlayer.get(s.player_id) ?? []
     const nat = p ? TEAM_NAME_FR[p.nationality] ?? p.nationality : '?'
-    return `- ${p?.name ?? '?'} (${nat}) : ${acts.join(', ')} — ${owners.length ? owners.join(', ') : 'personne'}`
+    const pts = pointsByPlayer.get(s.player_id)
+    const ptsStr = pts != null ? ` — ${pts > 0 ? '+' : ''}${pts} pts générés` : ''
+    return `- ${p?.name ?? '?'} (${nat}) : ${acts.join(', ')} — ${owners.length ? owners.join(', ') : 'personne'}${ptsStr}`
   })
 
-  const standings = parts.map((p, i) => `${i + 1}. ${p.name} ${p.total_points}`)
+  // Une ligne par participant : classement général + total + variation du jour.
+  const participantLines = parts.map((p, i) => {
+    const d = gain.get(p.id) ?? 0
+    return `${i + 1}. ${p.name} — ${p.total_points} pts au total (${d > 0 ? '+' : ''}${d} aujourd'hui)`
+  })
 
   const userPrompt = [
-    `Performances individuelles du jour (joueur — fait — propriétaire(s) fantasy) :`,
+    `Performances individuelles du jour (joueur — fait — propriétaire(s) fantasy — points générés) :`,
     perfLines.join('\n') || '(aucune performance notable)',
     ``,
-    `Points gagnés/perdus aujourd'hui :`,
-    movers.join('\n') || "(personne n'a marqué de points)",
-    ``,
-    `Classement général :`,
-    standings.join('\n'),
+    `Participants (classement général — total — variation du jour) :`,
+    participantLines.join('\n'),
   ].join('\n')
 
   // console.log('[recap-debug] USER PROMPT:\n' + userPrompt + '\n[/recap-debug]')

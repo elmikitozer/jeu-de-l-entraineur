@@ -8,6 +8,7 @@ import LeaderboardTableAnimated from '@/components/LeaderboardTableAnimated'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
 import ShareButton from '@/components/ShareButton'
 import RecapShare from '@/components/RecapShare'
+import RecapBody from '@/components/RecapBody'
 import { formatRecapDate } from '@/lib/datetime'
 
 export const revalidate = 60
@@ -36,29 +37,51 @@ export default async function LeaderboardPage() {
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-6 md:px-12 pb-16">
 
-        {/* ── Hero ── */}
-        <div className="pt-10 md:pt-[42px] flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div>
-            <p
-              className="text-[13px] font-bold font-body tracking-[0.18em] uppercase"
-              style={{ color: 'var(--c-lime)' }}
-            >
-              Coupe du Monde 2026
-              {totalParticipants > 0 && ` · ${totalParticipants} participants`}
-            </p>
-            <h1 className="mt-2 font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
-              Classement<br />général
-            </h1>
-            {!empty && (
-              <div className="mt-4">
-                <ShareButton />
-              </div>
+        {/* ── Hero : la chronique du soir (above the fold) ── */}
+        <div className="pt-10 md:pt-[42px] flex flex-col md:flex-row md:justify-between gap-6 md:gap-10">
+          <div className="min-w-0 flex-1 md:max-w-[820px]">
+            {recap ? (
+              <>
+                <h1 className="font-display font-bold italic uppercase text-[27px] md:text-[42px] leading-[1.03] tracking-[0.01em]">
+                  <span style={{ color: 'var(--c-lime)' }}>La chronique du soir</span>
+                  <span style={{ color: 'var(--c-sub)' }}> · {formatRecapDate(recap.date)}</span>
+                </h1>
+                <div
+                  className="mt-4 rounded-2xl px-5 md:px-7 py-5"
+                  style={{
+                    background: 'var(--c-card-overlay)',
+                    border: '1px solid var(--c-card-border)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                  }}
+                >
+                  <RecapBody content={recap.content} />
+                </div>
+                <div className="mt-3.5">
+                  <RecapShare text={recap.content} />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
+                  Coupe du Monde 2026
+                  {totalParticipants > 0 && ` · ${totalParticipants} participants`}
+                </p>
+                <h1 className="mt-2 font-display font-bold italic uppercase text-[48px] md:text-[68px] leading-none tracking-[0.01em] text-white">
+                  Classement<br />général
+                </h1>
+                {!empty && (
+                  <div className="mt-4">
+                    <ShareButton />
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Cagnotte */}
+          {/* Cagnotte (coin supérieur droit, inchangé) */}
           <div
-            className="rounded-2xl px-7 py-4 text-center self-start md:self-auto text-white"
+            className="rounded-2xl px-7 py-4 text-center self-start text-white flex-shrink-0"
             style={{
               background: 'var(--c-card-overlay)',
               border: '1px solid var(--c-card-border)',
@@ -78,39 +101,6 @@ export default async function LeaderboardPage() {
           </div>
         </div>
 
-        {/* ── Chronique du soir (IA) — mise en avant, avant le classement ── */}
-        {recap && (
-          <div className="mt-8">
-            <div className="flex items-start gap-3 mb-3.5">
-              <div className="flex flex-col gap-1.5 min-w-0">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold font-body tracking-[0.14em] uppercase" style={{ color: 'var(--c-ink)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--c-lime)' }} />
-                  {formatRecapDate(recap.date)}
-                </span>
-                <h2 className="font-display font-bold italic text-[28px] uppercase tracking-[0.02em] leading-[0.95]" style={{ color: 'var(--c-lime)' }}>
-                  La chronique du soir
-                </h2>
-              </div>
-              <div className="ml-auto flex-shrink-0">
-                <RecapShare text={recap.content} />
-              </div>
-            </div>
-            <div
-              className="rounded-2xl px-5 md:px-7 py-5 text-white"
-              style={{
-                background: 'var(--c-card-overlay)',
-                border: '1px solid var(--c-card-border)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-            >
-              <p className="text-[15px] md:text-[16px] font-body leading-relaxed italic" style={{ color: 'var(--c-ink)' }}>
-                {recap.content}
-              </p>
-            </div>
-          </div>
-        )}
-
         {empty ? (
           <div className="mt-24 text-center">
             <p className="text-[18px] font-body" style={{ color: 'var(--c-sub)' }}>
@@ -118,10 +108,28 @@ export default async function LeaderboardPage() {
             </p>
           </div>
         ) : (
-          <>
+          <section className="mt-12 md:mt-16">
+            {/* Titre classement (quand la chronique occupe le hero) */}
+            {recap && (
+              <div className="mb-6">
+                <p className="text-[13px] font-bold font-body tracking-[0.18em] uppercase" style={{ color: 'var(--c-lime)' }}>
+                  Coupe du Monde 2026
+                  {totalParticipants > 0 && ` · ${totalParticipants} participants`}
+                </p>
+                <div className="mt-2 flex items-end justify-between gap-4">
+                  <h2 className="font-display font-bold italic uppercase text-[40px] md:text-[56px] leading-none tracking-[0.01em] text-white">
+                    Classement général
+                  </h2>
+                  <div className="flex-shrink-0 pb-1">
+                    <ShareButton />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ── Podium ── */}
             {top3.length >= 1 && (
-              <div className="mt-8">
+              <div>
                 {/* Mobile : colonne, ordre 1-2-3 */}
                 <div className="flex flex-col gap-4 md:hidden">
                   {[top3[0], top3[1], top3[2]].filter(Boolean).map((e, i) => (
@@ -157,7 +165,7 @@ export default async function LeaderboardPage() {
                 <LeaderboardTableAnimated rest={rest} maxPoints={maxPoints} />
               </div>
             )}
-          </>
+          </section>
         )}
 
         {/* ── Matchs en cours ── */}

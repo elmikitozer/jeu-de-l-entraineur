@@ -67,10 +67,13 @@ function EventNode({ event }: { event: MatchEvent }) {
       {event.count > 1 && <span className="text-sub"> ×{event.count}</span>}
     </>
   )
-  const nameCls = 'font-display font-bold italic text-[17px] md:text-[19px] text-white leading-tight'
+  // Tailles réduites sur mobile pour tenir en 3 colonnes dès 390px.
+  const nameCls = 'font-display font-bold italic text-[13px] md:text-[19px] text-white leading-tight break-words'
 
+  // Alignement appliqué à TOUTES les tailles (home → droite, away → gauche),
+  // pour une structure identique mobile et desktop.
   const content = (
-    <div className={`flex flex-col ${isHome ? 'md:items-end md:text-right' : 'md:items-start md:text-left'}`}>
+    <div className={`flex flex-col min-w-0 ${isHome ? 'items-end text-right' : 'items-start text-left'}`}>
       {event.playerId ? (
         <Link href={`/players/${event.playerId}`} className={`${nameCls} hover:opacity-75 transition-opacity`}>
           {nameInner}
@@ -78,7 +81,7 @@ function EventNode({ event }: { event: MatchEvent }) {
       ) : (
         <span className={nameCls}>{nameInner}</span>
       )}
-      <span className="text-[11px] font-bold font-body tracking-[0.08em] uppercase" style={{ color: meta.color }}>
+      <span className="text-[10px] md:text-[11px] font-bold font-body tracking-[0.06em] md:tracking-[0.08em] uppercase leading-tight" style={{ color: meta.color }}>
         {minuteLabel && <span className="text-white">{minuteLabel} · </span>}
         {meta.label}
       </span>
@@ -86,20 +89,20 @@ function EventNode({ event }: { event: MatchEvent }) {
   )
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-5">
-      {/* Colonne gauche (home) */}
-      <div className={isHome ? '' : 'hidden md:block'}>{isHome ? content : null}</div>
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-5">
+      {/* Colonne gauche (home) — vide si événement away */}
+      <div className="min-w-0">{isHome ? content : null}</div>
 
       {/* Noeud central */}
       <div
-        className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 z-10"
+        className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0 z-10"
         style={{ background: 'var(--c-card)', border: `1.5px solid ${meta.color}` }}
       >
         <EventIcon type={event.type} />
       </div>
 
-      {/* Colonne droite (away) */}
-      <div className={!isHome ? '' : 'hidden md:block'}>{!isHome ? content : null}</div>
+      {/* Colonne droite (away) — vide si événement home */}
+      <div className="min-w-0">{!isHome ? content : null}</div>
     </div>
   )
 }

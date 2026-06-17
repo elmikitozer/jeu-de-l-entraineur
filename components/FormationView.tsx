@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { TeamLine } from '@/lib/queries'
 import PitchPlayer from './PitchPlayer'
 
@@ -69,14 +70,20 @@ export default function FormationView({ lines }: Props) {
           }}
         >
           {line.players.map((player) => (
-            <PitchPlayer
+            <Link
               key={player.id}
-              name={player.name}
-              nationality={player.nationality}
-              photoUrl={player.photo_url}
-              points={player.points}
-              isLive={player.isLive}
-            />
+              href={`/players/${player.id}`}
+              aria-label={player.name}
+              className="cursor-pointer transition-transform hover:-translate-y-0.5 active:scale-95"
+            >
+              <PitchPlayer
+                name={player.name}
+                nationality={player.nationality}
+                photoUrl={player.photo_url}
+                points={player.points}
+                isLive={player.isLive}
+              />
+            </Link>
           ))}
         </div>
       ))}

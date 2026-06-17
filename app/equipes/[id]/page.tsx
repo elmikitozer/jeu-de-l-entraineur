@@ -4,6 +4,7 @@ import { getParticipantWithTeam } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
 import Delta from '@/components/Delta'
 import FormationView from '@/components/FormationView'
+import CountryBreakdown from '@/components/CountryBreakdown'
 import RosterSidebar from '@/components/RosterSidebar'
 import TeamsLocked from '@/components/TeamsLocked'
 
@@ -116,6 +117,7 @@ export default async function TeamPage({ params }: Props) {
           {/* Terrain */}
           <div className="flex-1 min-w-0 w-full">
             <FormationView lines={lines} />
+            <CountryBreakdown lines={lines} />
           </div>
 
           {/* Effectif — accordéon mobile, sidebar desktop */}

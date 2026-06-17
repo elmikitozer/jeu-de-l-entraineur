@@ -37,13 +37,13 @@ export default async function LeaderboardPage() {
 
       <div className="relative z-10 max-w-[1280px] mx-auto px-6 md:px-12 pb-16">
 
-        {/* ── Hero : la chronique du soir (above the fold) ── */}
+        {/* ── Hero : la chronique du jour (above the fold) ── */}
         <div className="pt-10 md:pt-[42px] flex flex-col md:flex-row md:justify-between gap-6 md:gap-10">
           <div className="min-w-0 flex-1 md:max-w-[820px]">
             {recap ? (
               <>
                 <h1 className="font-display font-bold italic uppercase text-[27px] md:text-[42px] leading-[1.03] tracking-[0.01em]">
-                  <span style={{ color: 'var(--c-lime)' }}>La chronique du soir</span>
+                  <span style={{ color: 'var(--c-lime)' }}>La chronique du jour</span>
                   <span style={{ color: 'var(--c-sub)' }}> · {formatRecapDate(recap.date)}</span>
                 </h1>
                 <div

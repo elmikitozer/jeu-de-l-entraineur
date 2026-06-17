@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Corps de la chronique du soir : tronqué à 3 lignes par défaut, dépliable.
+ * Corps de la chronique du jour : tronqué à 3 lignes par défaut, dépliable.
  * Le bouton « Lire la suite » n'apparaît que si le texte déborde réellement
  * (mesuré côté client en état tronqué).
  */

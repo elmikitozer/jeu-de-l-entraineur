@@ -5,7 +5,7 @@ import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
 import { generateDailyRecapIfNeeded } from '@/lib/recap'
 
-/** Génère la chronique du soir si une journée vient de se terminer (best-effort). */
+/** Génère la chronique du jour si une journée vient de se terminer (best-effort). */
 async function tryRecap(supabase: ReturnType<typeof getSupabase>): Promise<boolean> {
   try {
     return (await generateDailyRecapIfNeeded(supabase)).generated

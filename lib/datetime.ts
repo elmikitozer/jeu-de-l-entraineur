@@ -38,8 +38,8 @@ export function formatMatchDate(date: string | Date): string {
 }
 
 /**
- * Date longue pour la chronique du soir. Ex: "jeudi 11 juin 2026".
- * recap_date est une date seule (YYYY-MM-DD, jour UTC des matchs) : on force
+ * Date longue pour la chronique du jour. Ex: "jeudi 11 juin 2026".
+ * recap_date est une date seule (YYYY-MM-DD, jour-hôte des matchs) : on force
  * le fuseau UTC pour un rendu stable et identique serveur/navigateur.
  */
 export function formatRecapDate(date: string): string {

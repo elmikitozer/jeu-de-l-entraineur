@@ -1,9 +1,16 @@
 /**
- * recap.ts — Chronique du soir générée par IA.
+ * recap.ts — Chronique du jour générée par IA.
  *
- * Déclenchée après le dernier match d'une journée (depuis le cron de sync) :
- * une fois tous les matchs d'un jour terminés, génère un récap mordant via
- * claude-sonnet-4-6 et le stocke dans daily_recaps (une fois, immuable).
+ * Déclenchée dès qu'une journée vient de se terminer (depuis le cron de sync) :
+ * une fois TOUS les matchs d'une journée terminés, génère et publie
+ * immédiatement un récap mordant via claude-sonnet-4-6 et le stocke dans
+ * daily_recaps (une fois, immuable). Pas de règle d'horaire.
+ *
+ * Une « journée » = un jour calendaire dans le fuseau hôte (CdM 2026 en
+ * Amérique de l'Ouest, PDT = UTC-7). On regroupe par jour-hôte plutôt que par
+ * jour UTC pour ne pas scinder un même bloc de soirée qui franchit minuit UTC
+ * (ex. coups d'envoi de 19:00 UTC à 04:00 UTC le lendemain = une seule
+ * journée locale).
  *
  * Appel API direct via fetch (pas de SDK) — nécessite ANTHROPIC_API_KEY.
  * Sans la clé, no-op silencieux.
@@ -11,10 +18,27 @@
 
 import type { createServiceClient } from './supabase-clients'
 import { TEAM_NAME_FR } from './flags'
+import { parseMatchDateUTC } from './datetime'
 
 type SB = ReturnType<typeof createServiceClient>
 
 const MODEL = 'claude-sonnet-4-6'
+
+// Fuseau hôte CdM 2026 (côte ouest US, PDT = UTC-7 sur toute la compétition,
+// été 2026 sans changement d'heure). Sert à dériver le « jour-hôte » d'un match.
+const HOST_TZ_OFFSET_MS = 7 * 60 * 60 * 1000
+
+// Filet de sécurité : si un match reste bloqué en 'scheduled' (bug API), la
+// journée ne doit jamais geler indéfiniment. Passé ce délai après le dernier
+// coup d'envoi prévu de la journée, on publie avec les matchs disponibles.
+const SAFETY_TIMEOUT_MS = 48 * 60 * 60 * 1000
+
+/** Jour calendaire dans le fuseau hôte (UTC-7), au format YYYY-MM-DD. */
+function hostDay(date: string): string {
+  return new Date(parseMatchDateUTC(date).getTime() - HOST_TZ_OFFSET_MS)
+    .toISOString()
+    .slice(0, 10)
+}
 
 const SYSTEM_PROMPT = `Tu es le commentateur sarcastique et affectueux d'un jeu de fantasy football entre amis.
 Le jeu fonctionne ainsi : chaque participant a sélectionné 11 joueurs réels avant le tournoi. Il gagne des points selon les performances individuelles de ses joueurs (buts, passes décisives, cartons, cleansheet, MOTM...), pas selon les résultats des matchs.
@@ -94,15 +118,23 @@ export async function generateDailyRecapIfNeeded(
   const rows = (matches ?? []) as unknown as MatchRow[]
   if (rows.length === 0) return { generated: false }
 
-  // Regroupe par jour UTC ; ne garde que les jours dont TOUS les matchs sont terminés.
+  // Regroupe par jour-hôte (UTC-7) ; ne garde que les journées « prêtes ».
   const byDay = new Map<string, MatchRow[]>()
   for (const m of rows) {
-    const day = m.date.slice(0, 10)
+    const day = hostDay(m.date)
     if (!byDay.has(day)) byDay.set(day, [])
     byDay.get(day)!.push(m)
   }
+  const now = Date.now()
+  // Une journée est prête si TOUS ses matchs sont terminés — ou, filet de
+  // sécurité, si 48h se sont écoulées depuis son dernier coup d'envoi prévu
+  // (un match resté 'scheduled' à cause d'un bug ne doit pas la geler).
   const completeDays = Array.from(byDay.entries())
-    .filter(([, ms]) => ms.every((m) => m.status === 'finished'))
+    .filter(([, ms]) => {
+      if (ms.every((m) => m.status === 'finished')) return true
+      const lastKickoff = Math.max(...ms.map((m) => parseMatchDateUTC(m.date).getTime()))
+      return now - lastKickoff > SAFETY_TIMEOUT_MS
+    })
     .map(([day]) => day)
     .sort((a, b) => b.localeCompare(a))
   if (completeDays.length === 0) return { generated: false }

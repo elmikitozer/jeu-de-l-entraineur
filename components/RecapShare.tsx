@@ -3,14 +3,14 @@
 import { useState } from 'react'
 
 /**
- * Partage la chronique du soir via Web Share API (texte). Sur iPhone → feuille
+ * Partage la chronique du jour via Web Share API (texte). Sur iPhone → feuille
  * de partage native → WhatsApp. Fallback : copie dans le presse-papiers.
  */
 export default function RecapShare({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
 
   async function onShare() {
-    const shareData = { title: "Jeu de l'Entraîneur — La chronique du soir", text }
+    const shareData = { title: "Jeu de l'Entraîneur — La chronique du jour", text }
     try {
       if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.(shareData)) {
         await navigator.share(shareData)

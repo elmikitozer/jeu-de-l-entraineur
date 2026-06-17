@@ -1223,7 +1223,7 @@ export async function getTeamDetail(code: string): Promise<TeamDetail | null> {
   }
 }
 
-// ── getLatestRecap (chronique du soir) ─────────────────────────────────────────
+// ── getLatestRecap (chronique du jour) ─────────────────────────────────────────
 
 export async function getLatestRecap(): Promise<{ date: string; content: string } | null> {
   const supabase = getClient()

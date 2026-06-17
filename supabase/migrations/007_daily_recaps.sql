@@ -1,5 +1,5 @@
 -- 007_daily_recaps.sql
--- Chronique du soir générée par IA (claude-sonnet-4-6), une par journée de matchs.
+-- Chronique du jour générée par IA (claude-sonnet-4-6), une par journée de matchs.
 -- Stockée pour éviter toute régénération (immuable, une ligne par date).
 
 create table if not exists public.daily_recaps (

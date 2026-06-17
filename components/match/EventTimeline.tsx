@@ -32,9 +32,18 @@ function EventIcon({ type }: { type: MatchEvent['type'] }) {
     )
   }
   if (type === 'assist') {
+    // crampon / botte de foot (profil)
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-blue)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 12h14M13 6l6 6-6 6" />
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 7 L8 7 C12 7 16 9 18 14 L19 15 C19.6 15.6 19.2 16.6 18.3 16.6 L5 16.6 C4.3 16.6 4 16.2 4 15.5 Z"
+          fill="var(--c-blue)"
+        />
+        <g fill="var(--c-blue)">
+          <rect x="6.4" y="16.9" width="1.7" height="2.3" rx="0.6" />
+          <rect x="10.4" y="16.9" width="1.7" height="2.3" rx="0.6" />
+          <rect x="14.4" y="16.9" width="1.7" height="2.3" rx="0.6" />
+        </g>
       </svg>
     )
   }
@@ -46,12 +55,19 @@ function EventIcon({ type }: { type: MatchEvent['type'] }) {
       </svg>
     )
   }
-  // ballon (goal / freekick / penalty)
+  // but : ballon dans les filets (goal / freekick / penalty)
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#07261B" strokeWidth="1.6">
-      <circle cx="12" cy="12" r="9" fill="#ffffff" />
-      <path d="m12 7 2.6 1.9-1 3.1h-3.2l-1-3.1L12 7Z" fill="#0D4A30" stroke="none" />
-      <path d="M12 7V4M14.6 8.9l2.6-1M13.6 12l1 3M10.4 12l-1 3M9.4 8.9l-2.6-1" stroke="#0D4A30" strokeWidth="1.2" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      {/* filet (mailles en losange, discret) */}
+      <g stroke="#ffffff" strokeWidth="0.8" opacity="0.4" strokeLinecap="round">
+        <path d="M8 0L24 16 M0 0L24 24 M0 8L16 24 M16 0L0 16 M24 0L0 24 M24 8L8 24" />
+      </g>
+      {/* ballon */}
+      <circle cx="12" cy="12" r="6.2" fill="#ffffff" stroke="#0D4A30" strokeWidth="1.1" />
+      <polygon points="12,8.8 14.7,10.7 13.7,13.9 10.3,13.9 9.3,10.7" fill="#0D4A30" />
+      <g stroke="#0D4A30" strokeWidth="0.9" strokeLinecap="round">
+        <path d="M12 8.8L12 6 M14.7 10.7L17.2 9.6 M13.7 13.9L15.3 16 M10.3 13.9L8.7 16 M9.3 10.7L6.8 9.6" />
+      </g>
     </svg>
   )
 }

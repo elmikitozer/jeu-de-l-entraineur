@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getParticipantWithTeam } from '@/lib/queries'
+import { getParticipantWithTeam, getParticipantMatches } from '@/lib/queries'
 import Avatar from '@/components/Avatar'
 import Delta from '@/components/Delta'
 import FormationView from '@/components/FormationView'
 import CountryBreakdown from '@/components/CountryBreakdown'
+import ParticipantMatches from '@/components/ParticipantMatches'
 import RosterSidebar from '@/components/RosterSidebar'
 import TeamsLocked from '@/components/TeamsLocked'
 
@@ -28,7 +29,10 @@ export default async function TeamPage({ params }: Props) {
     )
   }
 
-  const data = await getParticipantWithTeam(params.id)
+  const [data, myMatches] = await Promise.all([
+    getParticipantWithTeam(params.id),
+    getParticipantMatches(params.id),
+  ])
 
   if (!data) notFound()
 
@@ -123,6 +127,11 @@ export default async function TeamPage({ params }: Props) {
           {/* Effectif — accordéon mobile, sidebar desktop */}
           <RosterSidebar lines={lines} />
         </div>
+      )}
+
+      {/* ── Mes matchs — derniers + prochains impliquant l'équipe ── */}
+      {lines.length > 0 && (
+        <ParticipantMatches recent={myMatches.recent} upcoming={myMatches.upcoming} />
       )}
     </div>
   )

@@ -386,6 +386,145 @@ export async function getUpcomingMatches(limit = 5): Promise<Match[]> {
   return (data ?? []) as unknown as Match[]
 }
 
+// ── getParticipantMatches ─────────────────────────────────────────────────────
+
+/** Un joueur de l'équipe fantasy concerné par un match. */
+export interface ParticipantMatchPlayer {
+  id: string
+  name: string
+  nationality: string
+  points: number | null // points gagnés ce match (terminé) ; null si à venir
+}
+
+export interface ParticipantMatch {
+  id: string
+  home_team: string
+  away_team: string
+  home_score: number | null
+  away_score: number | null
+  date: string
+  status: MatchStatus
+  players: ParticipantMatchPlayer[]
+}
+
+export interface ParticipantMatchesData {
+  recent: ParticipantMatch[] // 2 derniers terminés
+  upcoming: ParticipantMatch[] // 3 prochains programmés
+}
+
+/**
+ * Matchs impliquant au moins un joueur de l'équipe fantasy d'un participant.
+ * Un match est « impliqué » si la nationalité d'un joueur de l'équipe correspond
+ * à l'une des deux sélections (comparaison par code pays via getCountryCode, qui
+ * absorbe les écarts de nommage joueurs ↔ matches). Aucune nouvelle source : tout
+ * vient de teams + players + matches + player_stats + points_log.
+ */
+export async function getParticipantMatches(participantId: string): Promise<ParticipantMatchesData> {
+  const supabase = getClient()
+
+  // 1. Joueurs de l'équipe fantasy
+  const { data: teamRows } = await supabase
+    .from('teams')
+    .select('player_id, players(id, name, nationality)')
+    .eq('participant_id', participantId)
+  type TR = { player_id: string; players: { id: string; name: string; nationality: string } | null }
+  const teamPlayers = ((teamRows ?? []) as unknown as TR[])
+    .map((t) => t.players)
+    .filter((p): p is NonNullable<typeof p> => p !== null)
+  if (teamPlayers.length === 0) return { recent: [], upcoming: [] }
+
+  // Code pays → joueurs de l'équipe (pour retrouver les concernés par match)
+  const playersByCode = new Map<string, typeof teamPlayers>()
+  for (const p of teamPlayers) {
+    const code = getCountryCode(p.nationality)
+    if (!code) continue
+    const arr = playersByCode.get(code) ?? []
+    arr.push(p)
+    playersByCode.set(code, arr)
+  }
+  const teamCodes = new Set(playersByCode.keys())
+  const teamPlayerIds = teamPlayers.map((p) => p.id)
+
+  // 2. Tous les matchs → ceux impliquant l'équipe
+  const { data: matchRows } = await supabase
+    .from('matches')
+    .select('id, home_team, away_team, home_score, away_score, date, status')
+    .order('date', { ascending: true })
+  type MR = {
+    id: string; home_team: string; away_team: string
+    home_score: number | null; away_score: number | null
+    date: string; status: MatchStatus
+  }
+  const matches = (matchRows ?? []) as unknown as MR[]
+
+  const concernedFor = (m: MR): typeof teamPlayers => {
+    const hc = getCountryCode(m.home_team)
+    const ac = getCountryCode(m.away_team)
+    const out: typeof teamPlayers = []
+    if (hc) out.push(...(playersByCode.get(hc) ?? []))
+    if (ac) out.push(...(playersByCode.get(ac) ?? []))
+    return out
+  }
+  const isInvolved = (m: MR) => {
+    const hc = getCountryCode(m.home_team)
+    const ac = getCountryCode(m.away_team)
+    return (!!hc && teamCodes.has(hc)) || (!!ac && teamCodes.has(ac))
+  }
+
+  const involved = matches.filter(isInvolved)
+  const recentMatches = involved
+    .filter((m) => m.status === 'finished')
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 2)
+  const upcomingMatches = involved
+    .filter((m) => m.status === 'scheduled')
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 3)
+
+  // 3. Matchs terminés : qui a joué + points gagnés ce match
+  const recentIds = recentMatches.map((m) => m.id)
+  const playedSet = new Set<string>() // `${matchId}:${playerId}`
+  const ptsMap = new Map<string, number>()
+  if (recentIds.length > 0) {
+    const [{ data: stats }, { data: logs }] = await Promise.all([
+      supabase
+        .from('player_stats')
+        .select('match_id, player_id, played')
+        .in('match_id', recentIds)
+        .in('player_id', teamPlayerIds),
+      supabase
+        .from('points_log')
+        .select('match_id, player_id, total_points')
+        .eq('participant_id', participantId)
+        .in('match_id', recentIds)
+        .in('player_id', teamPlayerIds),
+    ])
+    for (const s of stats ?? []) {
+      if (s.played) playedSet.add(`${s.match_id as string}:${s.player_id as string}`)
+    }
+    for (const l of logs ?? []) {
+      const k = `${l.match_id as string}:${l.player_id as string}`
+      ptsMap.set(k, (ptsMap.get(k) ?? 0) + ((l.total_points as number) || 0))
+    }
+  }
+
+  const recent: ParticipantMatch[] = recentMatches.map((m) => ({
+    id: m.id, home_team: m.home_team, away_team: m.away_team,
+    home_score: m.home_score, away_score: m.away_score, date: m.date, status: m.status,
+    players: concernedFor(m)
+      .filter((p) => playedSet.has(`${m.id}:${p.id}`))
+      .map((p) => ({ id: p.id, name: p.name, nationality: p.nationality, points: ptsMap.get(`${m.id}:${p.id}`) ?? 0 })),
+  }))
+
+  const upcoming: ParticipantMatch[] = upcomingMatches.map((m) => ({
+    id: m.id, home_team: m.home_team, away_team: m.away_team,
+    home_score: m.home_score, away_score: m.away_score, date: m.date, status: m.status,
+    players: concernedFor(m).map((p) => ({ id: p.id, name: p.name, nationality: p.nationality, points: null })),
+  }))
+
+  return { recent, upcoming }
+}
+
 // ── getAllMatches ─────────────────────────────────────────────────────────────
 
 export async function getAllMatches(): Promise<Match[]> {

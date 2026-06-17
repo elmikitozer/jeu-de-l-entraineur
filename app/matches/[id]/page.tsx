@@ -7,6 +7,7 @@ import MatchHero from '@/components/match/MatchHero'
 import EventTimeline from '@/components/match/EventTimeline'
 import LineupCard from '@/components/match/LineupCard'
 import FantasyImpact from '@/components/match/FantasyImpact'
+import MotmSpotlight from '@/components/match/MotmSpotlight'
 import RealtimeRefresh from '@/components/RealtimeRefresh'
 
 export const revalidate = 60
@@ -41,6 +42,11 @@ export default async function MatchPage({ params }: Props) {
   const isScheduled = match.status === 'scheduled'
   const isFinished = match.status === 'finished'
 
+  // Spotlight = MOTM OFFICIEL FIFA uniquement. Si pas encore tombé sur un match
+  // terminé → placeholder (player null). Le proxy reste un badge des compositions.
+  const lineup = [...home.lineup, ...away.lineup]
+  const officialMotm = lineup.find((p) => p.motmOfficial) ?? null
+
   return (
     <div className="max-w-[940px] mx-auto px-4 md:px-10 pb-16">
       <RealtimeRefresh />
@@ -57,6 +63,9 @@ export default async function MatchPage({ params }: Props) {
 
       {/* 1. HERO */}
       <MatchHero match={match} />
+
+      {/* 1b. PLAYER OF THE MATCH FIFA — terminé seulement (photo ou placeholder) */}
+      {isFinished && <MotmSpotlight player={officialMotm} />}
 
       {isScheduled ? (
         <div className="mt-10 bg-card border border-line rounded-2xl px-6 py-12 text-center">

@@ -61,7 +61,7 @@ export default async function MatchPage({ params }: Props) {
       {isScheduled ? (
         <div className="mt-10 bg-card border border-line rounded-2xl px-6 py-12 text-center">
           <p className="text-[14px] font-body text-sub">
-            Ce match n&apos;a pas encore eu lieu. Compositions, événements et points fantasy
+            Ce match n&apos;a pas encore eu lieu. Compositions, événements et points
             apparaîtront ici une fois le coup d&apos;envoi donné.
           </p>
         </div>
@@ -75,7 +75,15 @@ export default async function MatchPage({ params }: Props) {
             </div>
           </section>
 
-          {/* 3. COMPOSITIONS */}
+          {/* 3. POINTS GÉNÉRÉS (si terminé) — avant les compositions */}
+          {isFinished && (
+            <section className="mt-10">
+              <SectionTitle>Points générés</SectionTitle>
+              <FantasyImpact fantasy={fantasy} rankingImpact={rankingImpact} />
+            </section>
+          )}
+
+          {/* 4. COMPOSITIONS */}
           <section className="mt-10">
             <SectionTitle>Compositions</SectionTitle>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -83,14 +91,6 @@ export default async function MatchPage({ params }: Props) {
               <LineupCard team={away.team} players={away.lineup} matchId={match.id} />
             </div>
           </section>
-
-          {/* 4. POINTS FANTASY (si terminé) */}
-          {isFinished && (
-            <section className="mt-10">
-              <SectionTitle>Points fantasy générés</SectionTitle>
-              <FantasyImpact fantasy={fantasy} rankingImpact={rankingImpact} />
-            </section>
-          )}
         </>
       )}
 

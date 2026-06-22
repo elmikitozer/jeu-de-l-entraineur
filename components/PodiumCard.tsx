@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import type { LeaderboardEntry } from '@/lib/queries'
 import Avatar from './Avatar'
 import OdometerScore from './OdometerScore'
+import PlacesBadge from './PlacesBadge'
 
 interface Props {
   entry: LeaderboardEntry
@@ -109,8 +110,11 @@ export default function PodiumCard({ entry, place }: Props) {
           >
             {entry.name}
           </div>
-          <div className="mt-1">
+          <div className="mt-1 flex items-center gap-2">
             <ArrowBadge delta={entry.delta} cardDelay={cardDelay} />
+            {(entry.placesGained !== 0 || entry.delta !== 0) && (
+              <PlacesBadge places={entry.placesGained} />
+            )}
           </div>
         </div>
       </div>

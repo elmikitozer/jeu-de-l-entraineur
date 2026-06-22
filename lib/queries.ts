@@ -17,6 +17,7 @@ export interface LeaderboardEntry {
   total_points: number
   rank: number
   delta: number  // pts gagnés dans les dernières 24h
+  placesGained: number  // rangs gagnés (+) ou perdus (−) sur la même fenêtre 24h
 }
 
 export interface PlayerWithPoints extends Player {
@@ -140,12 +141,30 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     deltaMap.set(pid, (deltaMap.get(pid) ?? 0) + pts)
   }
 
-  return (participants ?? []).map((p, i) => ({
+  // Rang actuel : index dans l'ordre total_points desc (déjà trié par la DB).
+  const current = (participants ?? []).map((p, i) => ({
     id: p.id as string,
     name: p.name as string,
     total_points: (p.total_points as number) || 0,
     rank: i + 1,
     delta: deltaMap.get(p.id as string) ?? 0,
+  }))
+
+  // Rang d'il y a 24h : on reclasse sur (total_points − delta), c.-à-d. le total
+  // tel qu'il était avant les points marqués sur la fenêtre. Départage par le
+  // rang actuel pour rester stable → places gagnées = 0 quand rien n'a bougé.
+  const oldRank = new Map<string, number>()
+  ;[...current]
+    .sort((a, b) => {
+      const oldA = a.total_points - a.delta
+      const oldB = b.total_points - b.delta
+      return oldB !== oldA ? oldB - oldA : a.rank - b.rank
+    })
+    .forEach((e, i) => oldRank.set(e.id, i + 1))
+
+  return current.map((e) => ({
+    ...e,
+    placesGained: (oldRank.get(e.id) ?? e.rank) - e.rank,
   }))
 }
 

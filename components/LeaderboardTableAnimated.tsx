@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Avatar from './Avatar'
 import Delta from './Delta'
+import PlacesBadge from './PlacesBadge'
 import type { LeaderboardEntry } from '@/lib/queries'
 
 interface Props {
@@ -89,8 +90,11 @@ export default function LeaderboardTableAnimated({ rest, maxPoints }: Props) {
                   {entry.name}
                 </span>
               </span>
-              <span className="text-right">
+              <span className="flex flex-col items-end gap-1">
                 <Delta delta={entry.delta} />
+                {(entry.placesGained !== 0 || entry.delta !== 0) && (
+                  <PlacesBadge places={entry.placesGained} />
+                )}
               </span>
               <span className="text-right font-display font-bold italic text-[24px]" style={{ color: 'var(--c-ink)' }}>
                 {entry.total_points}
@@ -127,8 +131,11 @@ export default function LeaderboardTableAnimated({ rest, maxPoints }: Props) {
                   />
                 </span>
               </span>
-              <span className="text-right">
+              <span className="flex items-center justify-end gap-2">
                 <Delta delta={entry.delta} />
+                {(entry.placesGained !== 0 || entry.delta !== 0) && (
+                  <PlacesBadge places={entry.placesGained} />
+                )}
               </span>
               <span className="text-right font-display font-bold italic text-[26px]" style={{ color: 'var(--c-ink)' }}>
                 {entry.total_points}

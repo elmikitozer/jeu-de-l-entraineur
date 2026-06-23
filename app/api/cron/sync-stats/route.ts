@@ -4,6 +4,28 @@ import { syncMatch } from '@/lib/sync-engine'
 import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
 import { generateDailyRecapIfNeeded } from '@/lib/recap'
+import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
+
+// Fenêtre de réconciliation du MOTM officiel FIFA : on ne re-vérifie que les
+// matchs des 5 derniers jours. FIFA publie son Player of the Match en quelques
+// heures (rarement plus) ; au-delà, c'est déjà capté (idempotent) ou réglé via
+// le script de backfill. Borne le coût par cycle à une poignée de matchs.
+const MOTM_RECONCILE_WINDOW_MS = 5 * 24 * 60 * 60 * 1000
+
+/**
+ * Applique le MOTM officiel FIFA aux matchs terminés où il vient d'être publié
+ * (best-effort). Tourne AVANT la chronique pour qu'elle reflète les points
+ * corrigés. Idempotent : ne touche que les matchs sans MOTM officiel encore capté.
+ */
+async function tryReconcileMotm(supabase: ReturnType<typeof getSupabase>): Promise<number> {
+  try {
+    const r = await reconcileOfficialMotm(supabase, { windowMs: MOTM_RECONCILE_WINDOW_MS })
+    return r.matchesUpdated
+  } catch (err) {
+    console.error('[cron] motm', err instanceof Error ? err.message : String(err))
+    return 0
+  }
+}
 
 /** Génère la chronique du jour si une journée vient de se terminer (best-effort). */
 async function tryRecap(supabase: ReturnType<typeof getSupabase>): Promise<boolean> {
@@ -108,8 +130,9 @@ export async function GET(request: NextRequest) {
   const toSyncIds = Array.from(toSync)
 
   if (toSyncIds.length === 0) {
+    const motmUpdated = await tryReconcileMotm(supabase)
     const recapGenerated = await tryRecap(supabase)
-    return NextResponse.json({ synced: 0, matchesProcessed: 0, recapGenerated, errors: [] })
+    return NextResponse.json({ synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, errors: [] })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -132,11 +155,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const motmUpdated = await tryReconcileMotm(supabase)
   const recapGenerated = await tryRecap(supabase)
 
   return NextResponse.json({
     synced: playersUpdated,
     matchesProcessed: toSyncIds.length,
+    motmUpdated,
     recapGenerated,
     errors,
     timestamp: now.toISOString(),

@@ -18,6 +18,7 @@ import type { Position, PointsBreakdown, PlayerStats } from './types'
 import { parseMatchDateUTC } from './datetime'
 import { fetchFifaMotm, matchEntryToFixture, bestNameMatch } from './fifa-motm'
 import { getCountryCode } from './flags'
+import { applyAbsentTeamResultBonus } from './team-result-bonus'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -313,9 +314,42 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
     errors.push(`fetchMatchEvents: ${err instanceof Error ? err.message : String(err)}`)
   }
 
-  // ── 6. Recalcul total_points des participants affectés ────────────────────
+  // ── 6. Mettre à jour le statut + score du match ───────────────────────────
+  // Écrit AVANT le crédit des absents (qui lit le résultat) et le recalcul.
+
+  const newStatus =
+    mode === 'live' && !apiSaysFinished
+      ? 'live'
+      : 'finished'
+
+  // sync_attempts ne compte que les syncs post-match (final + post-check)
+  const syncAttempts =
+    mode === 'live' ? (matchRow.sync_attempts as number) : ((matchRow.sync_attempts as number) ?? 0) + 1
+
+  await supabase
+    .from('matches')
+    .update({
+      status: newStatus,
+      home_score: fixtureResult.homeScore,
+      away_score: fixtureResult.awayScore,
+      minute: fixtureResult.elapsed,
+      status_short: fixtureResult.status,
+      last_verified_at: new Date().toISOString(),
+      sync_attempts: syncAttempts,
+    })
+    .eq('id', matchId)
+
+  // ── 7. Bonus de résultat collectif pour les sélectionnés hors feuille ──────
+  // Tout joueur sélectionné dont le pays a joué touche le bonus de résultat même
+  // absent du groupe. Dépend du statut 'finished' + scores écrits ci-dessus.
 
   const affectedParticipants = new Set<string>()
+  if (newStatus === 'finished') {
+    const absentAffected = await applyAbsentTeamResultBonus(supabase, matchId)
+    for (const pid of Array.from(absentAffected)) affectedParticipants.add(pid)
+  }
+
+  // ── 8. Recalcul total_points des participants affectés ────────────────────
 
   if (updatedPlayerIds.length > 0) {
     const { data: teams } = await supabase
@@ -344,30 +378,6 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
       .update({ total_points: total })
       .eq('id', participantId)
   }
-
-  // ── 7. Mettre à jour le statut du match ───────────────────────────────────
-
-  const newStatus =
-    mode === 'live' && !apiSaysFinished
-      ? 'live'
-      : 'finished'
-
-  // sync_attempts ne compte que les syncs post-match (final + post-check)
-  const syncAttempts =
-    mode === 'live' ? (matchRow.sync_attempts as number) : ((matchRow.sync_attempts as number) ?? 0) + 1
-
-  await supabase
-    .from('matches')
-    .update({
-      status: newStatus,
-      home_score: fixtureResult.homeScore,
-      away_score: fixtureResult.awayScore,
-      minute: fixtureResult.elapsed,
-      status_short: fixtureResult.status,
-      last_verified_at: new Date().toISOString(),
-      sync_attempts: syncAttempts,
-    })
-    .eq('id', matchId)
 
   return {
     matchId,

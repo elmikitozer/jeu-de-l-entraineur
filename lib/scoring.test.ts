@@ -283,7 +283,7 @@ describe('combinaison complexe', () => {
 // ---------------------------------------------------------------------------
 
 describe('cas limites', () => {
-  it("joueur qui n'a pas joué (played: false) → 0 pts, tous les champs à 0", () => {
+  it("remplaçant non entré (played: false) → seul le bonus de résultat collectif compte", () => {
     const result = calculatePlayerPoints(
       makeStats({
         played: false,
@@ -294,11 +294,20 @@ describe('cas limites', () => {
       }),
       'FWD',
     )
-    expect(result.total).toBe(0)
-    expect(result.win_bonus).toBe(0)
+    // Victoire de son équipe → +3, mais aucune perf individuelle (n'a pas joué).
+    expect(result.total).toBe(3)
+    expect(result.win_bonus).toBe(3)
     expect(result.goal_position_bonus).toBe(0)
     expect(result.assist_bonus).toBe(0)
     expect(result.motm_bonus).toBe(0)
+  })
+
+  it("remplaçant non entré, équipe nulle → +1 ; équipe perd → 0", () => {
+    const draw = calculatePlayerPoints(makeStats({ played: false, result: 'draw' }), 'MID')
+    expect(draw.total).toBe(1)
+    expect(draw.draw_bonus).toBe(1)
+    const loss = calculatePlayerPoints(makeStats({ played: false, result: 'loss' }), 'MID')
+    expect(loss.total).toBe(0)
   })
 
   it('carton rouge seul → total négatif (-10)', () => {

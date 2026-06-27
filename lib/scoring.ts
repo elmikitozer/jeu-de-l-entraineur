@@ -61,10 +61,18 @@ export function calculatePlayerPoints(
   stats: PlayerStats,
   position: Position,
 ): ScoringResult {
+  // --- Résultat collectif ---
+  // Accordé même au remplaçant non entré : un joueur sélectionné profite du
+  // résultat de son équipe (Victoire +3 / Nul +1) même s'il n'a pas joué.
+  const win_bonus = stats.result === 'win' ? WIN_BONUS : 0
+  const draw_bonus = stats.result === 'draw' ? DRAW_BONUS : 0
+
+  // Remplaçant non entré : seul le bonus de résultat collectif s'applique —
+  // aucune performance individuelle possible sans avoir foulé la pelouse.
   if (!stats.played) {
     return {
-      win_bonus: 0,
-      draw_bonus: 0,
+      win_bonus,
+      draw_bonus,
       goal_position_bonus: 0,
       goal_freekick_bonus: 0,
       goal_penalty_bonus: 0,
@@ -73,13 +81,9 @@ export function calculatePlayerPoints(
       cleansheet_bonus: 0,
       penalty_saved_bonus: 0,
       red_card_malus: 0,
-      total: 0,
+      total: win_bonus + draw_bonus,
     }
   }
-
-  // --- Résultat collectif ---
-  const win_bonus = stats.result === 'win' ? WIN_BONUS : 0
-  const draw_bonus = stats.result === 'draw' ? DRAW_BONUS : 0
 
   // --- Buts ---
   // Buts normaux = total - coup franc - penalty (chacun traité séparément)

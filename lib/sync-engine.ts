@@ -60,7 +60,7 @@ function toPlayerStats(raw: RawPlayerStats, matchId: string): PlayerStats {
     player_id: '',
     match_id: matchId,
     played: raw.played,
-    result: raw.played ? raw.result : null,
+    result: raw.result,
     goals: raw.goals,
     assists: raw.assists,
     motm: raw.motm,
@@ -235,7 +235,9 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
         player_id: ourPlayer.id,
         match_id: matchId,
         played: raw.played,
-        result: raw.played ? raw.result : null,
+        // Résultat de l'équipe stocké même pour un remplaçant non entré : il lui
+        // donne droit au bonus de résultat collectif (Victoire +3 / Nul +1).
+        result: raw.result,
         goals: raw.goals,
         assists: raw.assists,
         motm: motmEffective,

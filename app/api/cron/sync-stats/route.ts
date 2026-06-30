@@ -5,6 +5,7 @@ import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
 import { generateDailyRecapIfNeeded } from '@/lib/recap'
 import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
+import { resolveKnockoutFixtures, needsKnockoutResolution } from '@/lib/knockout-resolver'
 
 // Fenêtre de réconciliation du MOTM officiel FIFA : on ne re-vérifie que les
 // matchs des 5 derniers jours. FIFA publie son Player of the Match en quelques
@@ -63,11 +64,26 @@ export async function GET(request: NextRequest) {
 
   const { data: matches, error: fetchErr } = await supabase
     .from('matches')
-    .select('id, date, status, last_verified_at, sync_attempts, api_match_id')
+    .select('id, date, status, last_verified_at, sync_attempts, api_match_id, home_team, stage')
     .or('status.eq.scheduled,status.eq.live,status.eq.finished')
 
   if (fetchErr) {
     return NextResponse.json({ error: fetchErr.message }, { status: 500 })
+  }
+
+  // ── Résoudre les matchs de phase finale dont le placeholder n'a pas encore ──
+  // été remplacé par la vraie fixture API (équipes connues au fil des qualifs).
+  // Coûte 1 appel API ; ne tourne que tant qu'il reste des slots à résoudre.
+  let knockout = { remapped: 0, refreshed: 0, resynced: 0, errors: [] as string[] }
+  const hasPendingKnockout = (matches ?? []).some((m) =>
+    needsKnockoutResolution({
+      stage: m.stage as string | null,
+      home_team: m.home_team as string,
+      api_match_id: m.api_match_id as number | null,
+    })
+  )
+  if (hasPendingKnockout) {
+    knockout = await resolveKnockoutFixtures(supabase)
   }
 
   // ── Source de vérité live : l'API (indépendante des horaires stockés) ─────
@@ -132,7 +148,7 @@ export async function GET(request: NextRequest) {
   if (toSyncIds.length === 0) {
     const motmUpdated = await tryReconcileMotm(supabase)
     const recapGenerated = await tryRecap(supabase)
-    return NextResponse.json({ synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, errors: [] })
+    return NextResponse.json({ synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, errors: knockout.errors })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -158,11 +174,14 @@ export async function GET(request: NextRequest) {
   const motmUpdated = await tryReconcileMotm(supabase)
   const recapGenerated = await tryRecap(supabase)
 
+  if (knockout.errors.length > 0) errors.push(...knockout.errors.map((e) => `[knockout] ${e}`))
+
   return NextResponse.json({
     synced: playersUpdated,
     matchesProcessed: toSyncIds.length,
     motmUpdated,
     recapGenerated,
+    knockout,
     errors,
     timestamp: now.toISOString(),
   })

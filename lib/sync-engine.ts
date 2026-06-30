@@ -130,13 +130,19 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   let fixtureResult: { homeScore: number; awayScore: number; status: string; elapsed: number | null } = {
     homeScore: 0, awayScore: 0, status: 'NS', elapsed: null,
   }
+  let fixtureFetchOk = false
   try {
     fixtureResult = await fetchFixtureResult(apiMatchId)
+    fixtureFetchOk = true
   } catch (err) {
     errors.push(`fetchFixtureResult: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   const apiSaysFinished = FINISHED_STATUSES.has(fixtureResult.status)
+  // L'API n'a pas (encore) commencé ce match, ou la fixture est introuvable :
+  // on ne doit PAS fabriquer un faux résultat "finished 0-0". Cas typique d'un
+  // api_match_id placeholder ou d'un match reporté.
+  const apiUnknownOrNotStarted = !fixtureFetchOk || fixtureResult.status === 'NS' || fixtureResult.status === 'TBD'
 
   // ── 4. Joueurs de notre DB avec api_football_id ───────────────────────────
   // ⚠️ PostgREST plafonne chaque select à 1000 lignes. Le pool dépasse ce seuil
@@ -317,8 +323,11 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   // ── 6. Mettre à jour le statut + score du match ───────────────────────────
   // Écrit AVANT le crédit des absents (qui lit le résultat) et le recalcul.
 
-  const newStatus =
-    mode === 'live' && !apiSaysFinished
+  // Statut introuvable/non démarré → on n'écrit JAMAIS un faux "finished 0-0" :
+  // on conserve le statut courant (le match n'a pas réellement commencé).
+  const newStatus = apiUnknownOrNotStarted
+    ? currentStatus
+    : mode === 'live' && !apiSaysFinished
       ? 'live'
       : 'finished'
 
@@ -326,18 +335,22 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   const syncAttempts =
     mode === 'live' ? (matchRow.sync_attempts as number) : ((matchRow.sync_attempts as number) ?? 0) + 1
 
-  await supabase
-    .from('matches')
-    .update({
-      status: newStatus,
-      home_score: fixtureResult.homeScore,
-      away_score: fixtureResult.awayScore,
-      minute: fixtureResult.elapsed,
-      status_short: fixtureResult.status,
-      last_verified_at: new Date().toISOString(),
-      sync_attempts: syncAttempts,
-    })
-    .eq('id', matchId)
+  // On ne réécrit score/minute/statut court que si l'API a renvoyé un vrai
+  // résultat. Sinon on se contente d'horodater (throttle) sans corrompre les
+  // données existantes avec des zéros.
+  const matchUpdate: Record<string, unknown> = {
+    status: newStatus,
+    last_verified_at: new Date().toISOString(),
+    sync_attempts: syncAttempts,
+  }
+  if (!apiUnknownOrNotStarted) {
+    matchUpdate.home_score = fixtureResult.homeScore
+    matchUpdate.away_score = fixtureResult.awayScore
+    matchUpdate.minute = fixtureResult.elapsed
+    matchUpdate.status_short = fixtureResult.status
+  }
+
+  await supabase.from('matches').update(matchUpdate).eq('id', matchId)
 
   // ── 7. Bonus de résultat collectif pour les sélectionnés hors feuille ──────
   // Tout joueur sélectionné dont le pays a joué touche le bonus de résultat même

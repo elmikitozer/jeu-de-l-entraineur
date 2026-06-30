@@ -401,6 +401,51 @@ export async function fetchFinalMatchStats(apiMatchId: number): Promise<RawPlaye
 
 // ID de la ligue Coupe du Monde dans API-Football.
 const WORLD_CUP_LEAGUE_ID = 1
+// Saison API-Football de la Coupe du Monde 2026.
+const WORLD_CUP_SEASON = 2026
+
+/** Fixture CdM telle que renvoyée par /fixtures?league&season (vue calendrier). */
+export interface WorldCupFixture {
+  id: number
+  date: string          // ISO8601 (fuseau UTC ou +00:00 selon l'API)
+  round: string         // ex "Round of 32", "Quarter-finals", "Final"
+  status: string        // short status ("NS", "FT", "PEN", "1H", ...)
+  homeName: string
+  awayName: string
+  homeScore: number | null
+  awayScore: number | null
+}
+
+/**
+ * Récupère TOUS les matchs de la Coupe du Monde pour la saison en cours
+ * (calendrier complet, une seule requête). Sert au resolver de phase finale :
+ * l'API ne crée la fixture d'un match à élimination directe qu'une fois ses
+ * deux équipes connues, avec les vrais noms d'équipes — ce qui permet de
+ * remplacer les placeholders ("TBD", api_match_id du seed) en base.
+ */
+export async function fetchWorldCupFixtures(): Promise<WorldCupFixture[]> {
+  type Raw = {
+    response?: Array<{
+      fixture: { id: number; date: string; status: { short: string } }
+      league: { round: string }
+      teams: { home: { name: string }; away: { name: string } }
+      goals: { home: number | null; away: number | null }
+    }>
+  }
+  const data = await apiFetch<Raw>(
+    `/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
+  )
+  return (data.response ?? []).map((fx) => ({
+    id: fx.fixture.id,
+    date: fx.fixture.date,
+    round: fx.league.round,
+    status: fx.fixture.status.short,
+    homeName: fx.teams.home.name,
+    awayName: fx.teams.away.name,
+    homeScore: fx.goals.home,
+    awayScore: fx.goals.away,
+  }))
+}
 
 /**
  * Renvoie l'ensemble des api_match_id actuellement EN COURS pour la CdM.

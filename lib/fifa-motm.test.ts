@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest'
-import { bestNameMatch, matchEntryToFixture, normalizeName, type FifaMotmEntry } from './fifa-motm'
+import { bestNameMatch, cleanFifaLine, matchEntryToFixture, normalizeName, type FifaMotmEntry } from './fifa-motm'
+
+describe('cleanFifaLine (format phase finale)', () => {
+  it('retire le préfixe "Match N –"', () => {
+    expect(cleanFifaLine('Match 73 – South Africa 0-1 Canada - Stephen Eustaquio (Canada)'))
+      .toBe('South Africa 0-1 Canada - Stephen Eustaquio (Canada)')
+  })
+
+  it('retire le score de TAB "(PSO x-y)" mais garde le score réglementaire et la nationalité', () => {
+    expect(cleanFifaLine('Match 74 – Germany 1-1 Paraguay (PSO 3-4)  - Orlando Gill (Paraguay)'))
+      .toBe('Germany 1-1 Paraguay - Orlando Gill (Paraguay)')
+  })
+
+  it('préserve une espace autour du tiret de score ("1 -1")', () => {
+    expect(cleanFifaLine('Match 75 – Netherlands 1 -1 Morocco (PSO 2-3) - Issa Diop (Morocco)'))
+      .toBe('Netherlands 1 -1 Morocco - Issa Diop (Morocco)')
+  })
+
+  it('no-op sur une ligne de phase de groupes', () => {
+    expect(cleanFifaLine('Mexico 2-0 South Africa - Julian Quinones (Mexico)'))
+      .toBe('Mexico 2-0 South Africa - Julian Quinones (Mexico)')
+  })
+})
 
 describe('normalizeName', () => {
   it('retire accents, casse et ponctuation', () => {

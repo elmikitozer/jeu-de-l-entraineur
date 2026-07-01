@@ -10,10 +10,15 @@
  *   GET /sections/article/{id}      → corps richtext (liste des MOTM par match)
  *
  * Format d'une ligne jouée (vérifié sur données réelles, CdM 2026) :
- *   "Mexico 2-0 South Africa - Julian Quinones (Mexico)"
+ *   Phase de groupes : "Mexico 2-0 South Africa - Julian Quinones (Mexico)"
+ *   Phase finale     : "Match 73 – South Africa 0-1 Canada - Stephen Eustaquio (Canada)"
+ *                      "Match 74 – Germany 1-1 Paraguay (PSO 3-4) - Orlando Gill (Paraguay)"
  *   ⚠️ noms d'équipe COMPLETS (pas de codes 3 lettres), séparateur '-' OU '–',
- *      accents retirés côté FIFA. Les matchs non joués sont au format
- *      "Team v Team – Group X - Stadium" et sont ignorés.
+ *      accents retirés côté FIFA. La phase finale ajoute un préfixe "Match N –",
+ *      un score de TAB "(PSO x-y)" (⇒ score RÉGLEMENTAIRE conservé pour le
+ *      matching, un nul) et parfois une espace autour du tiret du score ("1 -1").
+ *      cleanFifaLine() neutralise ces trois écarts. Les matchs non joués sont au
+ *      format "Team v Team – Stadium" et sont ignorés.
  *
  * Le matching équipe/nationalité réutilise getCountryCode() de flags.ts
  * (source unique, déjà alignée sur tous les alias FIFA : Czechia, Korea
@@ -56,10 +61,27 @@ function textOf(node: RichNode): string {
   return (node?.content ?? []).map(textOf).join('')
 }
 
-// "Home X-Y rest" → 1:home (non-greedy) 2:hs 3:as 4:rest
-const LINE = /^(.+?)\s+(\d+)-(\d+)\s+(.+)$/
+// "Home X-Y rest" → 1:home (non-greedy) 2:hs 3:as 4:rest. Le tiret du score
+// tolère une espace de part et d'autre ("Netherlands 1 -1 Morocco").
+const LINE = /^(.+?)\s+(\d+)\s*-\s*(\d+)\s+(.+)$/
 // "Away [-–] Player (Nationality)" → 1:away 2:player 3:nat (ancré sur les parenthèses finales)
 const TAIL = /^(.+?)\s*[-–]\s*(.+?)\s*\(([^()]+)\)\s*$/
+
+/**
+ * Neutralise les écarts de format de la phase finale avant parsing :
+ *   - préfixe "Match N –" (ou "Match N -") placé avant l'équipe domicile,
+ *   - parenthèse de score TAB "(PSO 3-4)" ou mention "(AET)" — toute parenthèse
+ *     contenant un chiffre — insérée entre l'équipe extérieure et le joueur.
+ * Le score réglementaire (hors TAB) reste intact pour le matching, la nationalité
+ * finale "(Canada)" (sans chiffre) est préservée. No-op sur les lignes de groupe.
+ */
+export function cleanFifaLine(line: string): string {
+  return line
+    .replace(/^Match\s+\d+\s*[–-]\s*/i, '')
+    .replace(/\([^()]*\d[^()]*\)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 function parseRichText(rt: RichNode): FifaMotmEntry[] {
   const paras: string[] = []
@@ -74,7 +96,7 @@ function parseRichText(rt: RichNode): FifaMotmEntry[] {
   const entries: FifaMotmEntry[] = []
   for (const p of paras) {
     for (const rawLine of p.split('\n')) {
-      const line = rawLine.trim()
+      const line = cleanFifaLine(rawLine)
       const m = LINE.exec(line)
       if (!m) continue
       const t = TAIL.exec(m[4])

@@ -19,6 +19,7 @@ import { parseMatchDateUTC } from './datetime'
 import { fetchFifaMotm, matchEntryToFixture, bestNameMatch } from './fifa-motm'
 import { getCountryCode } from './flags'
 import { applyAbsentTeamResultBonus } from './team-result-bonus'
+import { getSyncMode } from './sync-mode'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,8 @@ export interface SyncResult {
   errors: string[]
 }
 
-// Durée de la fenêtre live en millisecondes (2h45)
+// Durée de la fenêtre live / délai au terme duquel un match est réputé terminé
+// (prolongation + TAB comprises) : 2h45.
 const LIVE_WINDOW_MS = 165 * 60 * 1000
 
 // Statuts API-Football indiquant que le match est terminé
@@ -80,6 +82,7 @@ function toPlayerStats(raw: RawPlayerStats, matchId: string): PlayerStats {
 export async function syncMatch(matchId: string): Promise<SyncResult> {
   const supabase = getSupabase()
   const errors: string[] = []
+  const syncMode = getSyncMode()
 
   // ── 1. Charger le match ───────────────────────────────────────────────────
 
@@ -111,7 +114,8 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
   if (currentStatus === 'finished') {
     mode = 'post-check'
     rawStats = await fetchFinalMatchStats(apiMatchId)
-  } else if (now >= kickoff && now <= liveWindowEnd) {
+  } else if (syncMode === 'live' && now >= kickoff && now <= liveWindowEnd) {
+    // Temps réel : réservé au plan payant (cf. lib/sync-mode.ts).
     mode = 'live'
     rawStats = await fetchLiveMatchStats(apiMatchId)
     // Fallback si le live endpoint retourne vide (match pas encore détecté live)
@@ -122,6 +126,9 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
     mode = 'final'
     rawStats = await fetchFinalMatchStats(apiMatchId)
   } else {
+    // En mode 'final', un match dans sa fenêtre de jeu n'est pas encore
+    // synchronisable : on attend qu'il soit censé terminé plutôt que de dépenser
+    // une requête pour un résultat partiel.
     throw new Error(`Match ${matchId} n'est pas encore dans la fenêtre de sync`)
   }
 
@@ -325,11 +332,17 @@ export async function syncMatch(matchId: string): Promise<SyncResult> {
 
   // Statut introuvable/non démarré → on n'écrit JAMAIS un faux "finished 0-0" :
   // on conserve le statut courant (le match n'a pas réellement commencé).
+  // Seul l'API décide qu'un match est terminé : sans ça, un match encore en
+  // prolongation ou en TAB au moment du sync (statut 'ET'/'P'/'2H') serait figé
+  // 'finished' sur un score partiel. S'il n'est pas fini, on garde le statut
+  // courant et le cron réessaiera à la prochaine tentative.
   const newStatus = apiUnknownOrNotStarted
     ? currentStatus
-    : mode === 'live' && !apiSaysFinished
-      ? 'live'
-      : 'finished'
+    : apiSaysFinished
+      ? 'finished'
+      : mode === 'live'
+        ? 'live'
+        : currentStatus
 
   // sync_attempts ne compte que les syncs post-match (final + post-check)
   const syncAttempts =

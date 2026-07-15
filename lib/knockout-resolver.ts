@@ -34,6 +34,16 @@ export const KNOCKOUT_STAGES = [
 // c'est un placeholder du seed (73→104).
 const REAL_API_ID_THRESHOLD = 100_000
 
+/**
+ * L'api_match_id est-il un placeholder du seed plutôt qu'une vraie fixture ?
+ * Un placeholder pointe vers un match sans rapport côté API : le synchroniser
+ * écrit des player_stats parasites (vu sur la 1re demi-finale). Tout appelant
+ * doit filtrer là-dessus avant de synchroniser.
+ */
+export function isPlaceholderApiId(apiMatchId: number | null): boolean {
+  return (apiMatchId ?? 0) < REAL_API_ID_THRESHOLD
+}
+
 // Statuts API indiquant qu'un match a commencé ou est terminé : il faut le
 // synchroniser dès le remap (le cron ne le rattraperait pas s'il est ancien).
 const PLAYED_OR_LIVE = new Set([
@@ -68,7 +78,7 @@ export function needsKnockoutResolution(row: {
   api_match_id: number | null
 }): boolean {
   if (!row.stage || !(KNOCKOUT_STAGES as readonly string[]).includes(row.stage)) return false
-  return row.home_team === 'TBD' || (row.api_match_id ?? 0) < REAL_API_ID_THRESHOLD
+  return row.home_team === 'TBD' || isPlaceholderApiId(row.api_match_id)
 }
 
 export interface ResolveResult {

@@ -1,3 +1,24 @@
+/**
+ * Cron de synchronisation. Deux régimes cohabitent, pilotés par SYNC_MODE
+ * (cf. lib/sync-mode.ts) :
+ *
+ *   'live'  — temps réel, ~2900 requêtes/jour. Exige un plan API-Football payant.
+ *   'final' — résultat final uniquement, ~20 requêtes/jour. Défaut, tient dans
+ *             le plan gratuit (100/jour).
+ *
+ * Le mode live sondait chaque match à la minute et appelait `/fixtures?live=all`
+ * à chaque cycle. Sur plan gratuit le quota mourait en moins d'une heure, et un
+ * match terminé pouvait être resynchronisé en boucle (1241 fois sur
+ * Argentine-Suisse) car le chemin « live » court-circuitait le plafond de
+ * tentatives.
+ *
+ * Contrat du mode 'final' : AUCUN appel API tant qu'aucun match n'est réellement
+ * dû. Un match n'est synchronisé qu'une fois censé terminé (coup d'envoi +
+ * 2h45), au plus MAX_SYNC_ATTEMPTS fois, espacées d'au moins une heure. Un match
+ * déjà `finished` n'est plus re-sondé : le MOTM officiel publié tardivement est
+ * rattrapé par la réconciliation FIFA, qui est gratuite.
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient as getSupabase } from '@/lib/supabase-clients'
 import { syncMatch } from '@/lib/sync-engine'
@@ -5,7 +26,12 @@ import { fetchLiveFixtureIds } from '@/lib/api-football'
 import { parseMatchDateUTC } from '@/lib/datetime'
 import { generateDailyRecapIfNeeded } from '@/lib/recap'
 import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
-import { resolveKnockoutFixtures, needsKnockoutResolution } from '@/lib/knockout-resolver'
+import { getSyncMode } from '@/lib/sync-mode'
+import {
+  resolveKnockoutFixtures,
+  needsKnockoutResolution,
+  isPlaceholderApiId,
+} from '@/lib/knockout-resolver'
 
 // Fenêtre de réconciliation du MOTM officiel FIFA : on ne re-vérifie que les
 // matchs des 5 derniers jours. FIFA publie son Player of the Match en quelques
@@ -38,17 +64,26 @@ async function tryRecap(supabase: ReturnType<typeof getSupabase>): Promise<boole
   }
 }
 
-// Fenêtre live : 5 min avant le coup d'envoi → kickoff + 2h45.
-// Pendant cette fenêtre, le match est sondé à chaque minute (vrai temps réel).
-const LIVE_WINDOW_MS = 165 * 60 * 1000
-// Fenêtre de rattrapage : jusqu'à 24h après le coup d'envoi. AU-DELÀ de la
-// fenêtre live, le rattrapage est throttlé à 1h (comme le post-check) pour ne
-// pas brûler le quota API sur des matchs déjà terminés restés en 'scheduled'.
-const CATCHUP_WINDOW_MS = 24 * 60 * 60 * 1000
-// Délai de post-check / rattrapage throttlé : 1h entre chaque vérification
-const POST_CHECK_INTERVAL_MS = 60 * 60 * 1000
-// Nombre max de vérifications post-match
+// Fenêtre live (mode 'live') / délai au terme duquel un match est réputé terminé
+// (mode 'final') : coup d'envoi + 2h45, prolongation et TAB comprises.
+const FINAL_DELAY_MS = 165 * 60 * 1000
+// Mode 'live' : rattrapage horaire jusqu'à 24h après le coup d'envoi.
+const LIVE_CATCHUP_WINDOW_MS = 24 * 60 * 60 * 1000
+// Mode 'live' : plafond de post-checks sur un match terminé.
 const MAX_POST_CHECK_ATTEMPTS = 6
+// Au-delà de 3 jours après le coup d'envoi, on n'insiste plus automatiquement
+// (rattrapage manuel via script) — évite de brûler le quota sur un match dont
+// la fixture est introuvable.
+const CATCHUP_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
+// Délai minimal entre deux tentatives sur un même match.
+const RETRY_INTERVAL_MS = 60 * 60 * 1000
+// Plafond de tentatives par match (un match terminé est capté du 1er coup ;
+// les suivantes couvrent une fixture publiée en retard).
+const MAX_SYNC_ATTEMPTS = 4
+// Le resolver de phase finale coûte 1 requête : ne le déclencher qu'à l'approche
+// d'un match non résolu, et au plus une fois par heure.
+const RESOLVER_LOOKAHEAD_MS = 6 * 60 * 60 * 1000
+const RESOLVER_RETRY_MS = 60 * 60 * 1000
 
 export async function GET(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -59,6 +94,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = getSupabase()
   const now = new Date()
+  const syncMode = getSyncMode()
 
   // ── Identifier les matchs à synchroniser ─────────────────────────────────
 
@@ -71,76 +107,114 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: fetchErr.message }, { status: 500 })
   }
 
-  // ── Résoudre les matchs de phase finale dont le placeholder n'a pas encore ──
-  // été remplacé par la vraie fixture API (équipes connues au fil des qualifs).
-  // Coûte 1 appel API ; ne tourne que tant qu'il reste des slots à résoudre.
+  // ── Résoudre les matchs de phase finale encore en placeholder ─────────────
+  // L'API ne crée la fixture réelle qu'une fois les deux équipes connues. Le
+  // resolver coûte 1 requête : on ne le déclenche qu'à l'approche (ou après) le
+  // coup d'envoi d'un slot non résolu, et au plus une fois par heure — sinon,
+  // avec des slots « TBD » permanents (3e place, finale), il tournerait à chaque
+  // cycle et viderait le quota à lui seul.
   let knockout = { remapped: 0, refreshed: 0, resynced: 0, errors: [] as string[] }
-  const hasPendingKnockout = (matches ?? []).some((m) =>
+  const pendingKnockout = (matches ?? []).filter((m) =>
     needsKnockoutResolution({
       stage: m.stage as string | null,
       home_team: m.home_team as string,
       api_match_id: m.api_match_id as number | null,
     })
   )
-  if (hasPendingKnockout) {
+  // En mode 'live' le quota est large : on résout dès qu'il reste un slot.
+  const resolverDue =
+    syncMode === 'live'
+      ? pendingKnockout.length > 0
+      : pendingKnockout.some((m) => {
+          const kickoff = parseMatchDateUTC(m.date as string)
+          const near = now.getTime() >= kickoff.getTime() - RESOLVER_LOOKAHEAD_MS
+          const lastTry = m.last_verified_at ? new Date(m.last_verified_at as string).getTime() : 0
+          return near && now.getTime() - lastTry >= RESOLVER_RETRY_MS
+        })
+  if (resolverDue) {
     knockout = await resolveKnockoutFixtures(supabase)
+    // Horodater les slots restés non résolus : sert de throttle au cycle suivant
+    // (le resolver, lui, remet last_verified_at à null sur ce qu'il remappe).
+    const stillPending = pendingKnockout
+      .filter((m) => isPlaceholderApiId(m.api_match_id as number | null))
+      .map((m) => m.id as string)
+    if (stillPending.length > 0) {
+      await supabase
+        .from('matches')
+        .update({ last_verified_at: now.toISOString() })
+        .in('id', stillPending)
+        .eq('status', 'scheduled')
+    }
   }
 
-  // ── Source de vérité live : l'API (indépendante des horaires stockés) ─────
+  // ── Mode 'live' : source de vérité live = l'API (1 requête/cycle) ─────────
   // Si un match est réellement en cours côté API, on le synchronise quoi qu'il
-  // arrive — même si sa date en base est fausse. Filet anti-décalage horaire.
+  // arrive — filet anti-décalage horaire. Inutilisable en plan gratuit.
   let liveApiIds = new Set<number>()
-  try {
-    liveApiIds = await fetchLiveFixtureIds()
-  } catch {
-    // pas bloquant : on retombe sur la détection par horaire
+  if (syncMode === 'live') {
+    try {
+      liveApiIds = await fetchLiveFixtureIds()
+    } catch {
+      // pas bloquant : on retombe sur la détection par horaire
+    }
   }
 
   const toSync = new Set<string>()
 
   for (const match of matches ?? []) {
-    const kickoff = parseMatchDateUTC(match.date as string)
-    const fiveMinBefore = new Date(kickoff.getTime() - 5 * 60 * 1000)
-    const liveWindowEnd = new Date(kickoff.getTime() + LIVE_WINDOW_MS)
-    const catchupEnd = new Date(kickoff.getTime() + CATCHUP_WINDOW_MS)
-    const status = match.status as string
     const apiMatchId = match.api_match_id as number | null
+    const status = match.status as string
 
-    // Ignorer les matchs sans api_match_id (pas encore mappés)
-    if (!apiMatchId) continue
+    // Un placeholder du seed pointe vers une fixture sans rapport : le
+    // synchroniser écrirait des player_stats parasites (vu sur la 1re
+    // demi-finale). On attend le resolver, dans les deux modes.
+    if (!apiMatchId || isPlaceholderApiId(apiMatchId)) continue
 
-    // L'API dit que le match est en cours → sync immédiat, peu importe l'horaire
-    if (liveApiIds.has(apiMatchId)) {
-      toSync.add(match.id as string)
+    const kickoff = parseMatchDateUTC(match.date as string)
+    const attempts = (match.sync_attempts as number) ?? 0
+    const lastVerified = match.last_verified_at
+      ? new Date(match.last_verified_at as string).getTime()
+      : null
+    const sinceLast = lastVerified === null ? Infinity : now.getTime() - lastVerified
+
+    if (syncMode === 'live') {
+      // ── Temps réel (plan payant) ──────────────────────────────────────────
+      if (liveApiIds.has(apiMatchId)) {
+        toSync.add(match.id as string)
+        continue
+      }
+      const fiveMinBefore = kickoff.getTime() - 5 * 60 * 1000
+      const liveWindowEnd = kickoff.getTime() + FINAL_DELAY_MS
+      const catchupEnd = kickoff.getTime() + LIVE_CATCHUP_WINDOW_MS
+      const hourlyDue = attempts < MAX_POST_CHECK_ATTEMPTS && sinceLast >= RETRY_INTERVAL_MS
+
+      if (status === 'scheduled') {
+        if (now.getTime() >= fiveMinBefore && now.getTime() <= liveWindowEnd) {
+          toSync.add(match.id as string)
+        } else if (now.getTime() > liveWindowEnd && now.getTime() <= catchupEnd && hourlyDue) {
+          toSync.add(match.id as string)
+        }
+      } else if (status === 'live') {
+        toSync.add(match.id as string)
+      } else if (status === 'finished' && hourlyDue) {
+        toSync.add(match.id as string)
+      }
       continue
     }
 
-    // Throttle horaire partagé (rattrapage scheduled + post-check finished) :
-    // < MAX_ATTEMPTS et au moins 1h depuis le dernier sync.
-    const attempts = (match.sync_attempts as number) ?? 0
-    const lastVerified = match.last_verified_at
-      ? new Date(match.last_verified_at as string)
-      : null
-    const timeSinceLast = lastVerified ? now.getTime() - lastVerified.getTime() : Infinity
-    const hourlyDue = attempts < MAX_POST_CHECK_ATTEMPTS && timeSinceLast >= POST_CHECK_INTERVAL_MS
+    // ── Résultat final uniquement (plan gratuit) ────────────────────────────
+    // Un match déjà terminé n'est plus re-sondé : le MOTM officiel tardif est
+    // rattrapé par le reconcile FIFA, gratuit.
+    if (status === 'finished') continue
 
-    if (status === 'scheduled') {
-      if (now >= fiveMinBefore && now <= liveWindowEnd) {
-        // Fenêtre live → chaque minute (vrai temps réel)
-        toSync.add(match.id as string)
-      } else if (now > liveWindowEnd && now <= catchupEnd && hourlyDue) {
-        // Match raté resté 'scheduled' au-delà de sa fenêtre → rattrapage horaire
-        toSync.add(match.id as string)
-      }
-    } else if (status === 'live') {
-      // Match en cours → chaque minute (syncMatch déterminera si final)
-      toSync.add(match.id as string)
-    } else if (status === 'finished') {
-      // Post-check horaire avec plafond d'essais
-      if (hourlyDue) {
-        toSync.add(match.id as string)
-      }
-    }
+    // Pas encore censé terminé, ou trop ancien → aucune requête.
+    const dueAt = kickoff.getTime() + FINAL_DELAY_MS
+    const catchupEnd = kickoff.getTime() + CATCHUP_WINDOW_MS
+    if (now.getTime() < dueAt || now.getTime() > catchupEnd) continue
+    if (attempts >= MAX_SYNC_ATTEMPTS) continue
+    if (sinceLast < RETRY_INTERVAL_MS) continue
+
+    toSync.add(match.id as string)
   }
 
   const toSyncIds = Array.from(toSync)
@@ -148,7 +222,7 @@ export async function GET(request: NextRequest) {
   if (toSyncIds.length === 0) {
     const motmUpdated = await tryReconcileMotm(supabase)
     const recapGenerated = await tryRecap(supabase)
-    return NextResponse.json({ synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, errors: knockout.errors })
+    return NextResponse.json({ mode: syncMode, synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, errors: knockout.errors })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -177,6 +251,7 @@ export async function GET(request: NextRequest) {
   if (knockout.errors.length > 0) errors.push(...knockout.errors.map((e) => `[knockout] ${e}`))
 
   return NextResponse.json({
+    mode: syncMode,
     synced: playersUpdated,
     matchesProcessed: toSyncIds.length,
     motmUpdated,

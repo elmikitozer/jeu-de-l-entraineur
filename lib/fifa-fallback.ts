@@ -33,9 +33,9 @@
 
 import type { createServiceClient } from './supabase-clients'
 import { fetchFifaMotm } from './fifa-motm'
-import { getCountryCode } from './flags'
 import { isPlaceholderApiId, KNOCKOUT_STAGES } from './knockout-resolver'
 import { applyAbsentTeamResultBonus } from './team-result-bonus'
+import { loadNationalityByCode, canonicalTeamName } from './team-names'
 
 type SB = ReturnType<typeof createServiceClient>
 
@@ -50,21 +50,6 @@ export interface FifaFallbackOptions {
   /** Écrit en base si true (défaut). false = simulation. */
   apply?: boolean
   onLog?: (msg: string) => void
-}
-
-/**
- * Nom d'équipe canonique à écrire dans matches.home_team/away_team.
- *
- * FIFA, API-Football et notre base divergent sur certains noms ("Côte d'Ivoire"
- * vs "Ivory Coast", "Korea Republic" vs "South Korea"...). On réaligne sur la
- * valeur players.nationality correspondante : c'est la clé qu'utilise
- * applyAbsentTeamResultBonus pour retrouver les sélections, et flags.ts sait
- * déjà traduire ces valeurs pour l'affichage.
- */
-function canonicalTeamName(fifaName: string, byCode: Map<string, string>): string | null {
-  const code = getCountryCode(fifaName)
-  if (!code) return null
-  return byCode.get(code) ?? null
 }
 
 export async function applyFifaFallback(
@@ -104,26 +89,8 @@ export async function applyFifaFallback(
     return result
   }
 
-  // 3. code pays → valeur players.nationality (source de vérité des noms).
-  const byCode = new Map<string, string>()
-  const PAGE = 1000
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from('players')
-      .select('nationality')
-      .range(from, from + PAGE - 1)
-    if (error) {
-      result.errors.push(`players page ${from}: ${error.message}`)
-      break
-    }
-    if (!data || data.length === 0) break
-    for (const p of data) {
-      const nat = p.nationality as string
-      const code = getCountryCode(nat)
-      if (code && !byCode.has(code)) byCode.set(code, nat)
-    }
-    if (data.length < PAGE) break
-  }
+  // 3. Noms canoniques (players.nationality) par code pays.
+  const byCode = await loadNationalityByCode(supabase)
 
   const affectedParticipants = new Set<string>()
 

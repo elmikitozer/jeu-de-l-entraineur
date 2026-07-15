@@ -28,7 +28,7 @@ import { generateDailyRecapIfNeeded } from '@/lib/recap'
 import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
 import { getSyncMode } from '@/lib/sync-mode'
 import { applyFifaFallback } from '@/lib/fifa-fallback'
-import { syncKnockoutFromEspn } from '@/lib/espn-sync'
+import { syncKnockoutFromEspn, resolveKnockoutCalendarFromEspn } from '@/lib/espn-sync'
 import {
   resolveKnockoutFixtures,
   needsKnockoutResolution,
@@ -142,14 +142,23 @@ export async function GET(request: NextRequest) {
 
     // 2. Filet gratuit, en deux temps, sur les seules lignes encore en
     //    placeholder (donc jamais sur des données API) :
-    //    a) FIFA donne les équipes et le score → identifie le match et crédite
+    //    a) ESPN publie l'affiche d'un slot dès les qualifiés connus, là où FIFA
+    //       s'en tient à "Winner match 101 v Winner match 102" → calendrier à jour
+    //       avant même le coup d'envoi.
+    try {
+      const cal = await resolveKnockoutCalendarFromEspn(supabase)
+      espn.errors.push(...cal.errors)
+    } catch (err) {
+      espn.errors.push(`espnCalendar: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    //    b) FIFA donne les équipes et le score → identifie le match et crédite
     //       le bonus de résultat, même si ESPN ne le connaît pas encore.
     try {
       fifaFallback = await applyFifaFallback(supabase)
     } catch (err) {
       fifaFallback.errors.push(`fifaFallback: ${err instanceof Error ? err.message : String(err)}`)
     }
-    //    b) ESPN complète avec la feuille de match (buteurs, passeurs, cartons,
+    //    c) ESPN complète avec la feuille de match (buteurs, passeurs, cartons,
     //       penalties, cleansheets) — ce que FIFA ne publie pas. Nécessite les
     //       vraies équipes, donc tourne APRÈS le fallback FIFA.
     try {

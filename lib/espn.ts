@@ -33,6 +33,7 @@
  */
 
 import { getCountryCode } from './flags'
+import { parseMatchDateUTC } from './datetime'
 
 const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world'
 
@@ -112,7 +113,9 @@ export async function findEspnEventId(
   const target = [getCountryCode(homeTeam), getCountryCode(awayTeam)].filter(Boolean).sort()
   if (target.length !== 2) return null
 
-  const base = new Date(dateIso)
+  // ⚠️ Les dates matches sont des TIMESTAMP naïfs représentant de l'UTC :
+  // new Date() les lirait en heure locale (cf. datetime.ts).
+  const base = parseMatchDateUTC(dateIso)
   for (const offset of [0, -1, 1]) {
     const d = new Date(base.getTime() + offset * 86400_000)
     let sb: Json
@@ -133,6 +136,61 @@ export async function findEspnEventId(
     }
   }
   return null
+}
+
+export interface EspnFixture {
+  eventId: string
+  homeTeam: string
+  awayTeam: string
+  kickoff: string
+}
+
+/**
+ * Affiche d'un match à venir, retrouvée par HORAIRE de coup d'envoi.
+ *
+ * Sert à résoudre le calendrier : tant qu'un slot de phase finale est "TBD", on
+ * n'a aucun nom d'équipe pour l'identifier — seule la date fait clé. ESPN publie
+ * l'affiche dès que les qualifiés sont connus, là où le flux FIFA s'en tient à
+ * "Winner match 101 v Winner match 102".
+ *
+ * Tolérance de 90 min autour du coup d'envoi : nos horaires stockés collent à la
+ * minute sur la phase finale, mais on absorbe un éventuel ajustement.
+ */
+export async function findEspnFixtureByKickoff(
+  dateIso: string,
+  toleranceMs = 90 * 60 * 1000,
+): Promise<EspnFixture | null> {
+  // Idem : sans parseMatchDateUTC, un décalage de fuseau ferait rater la
+  // tolérance et aucune affiche ne serait résolue.
+  const target = parseMatchDateUTC(dateIso).getTime()
+  let best: { fx: EspnFixture; delta: number } | null = null
+
+  for (const offset of [0, -1, 1]) {
+    const d = new Date(target + offset * 86400_000)
+    let sb: Json
+    try {
+      sb = await espnFetch<Json>(`/scoreboard?dates=${ymd(d)}`)
+    } catch {
+      continue
+    }
+    for (const ev of sb.events ?? []) {
+      const comp = ev.competitions?.[0]
+      const home = (comp?.competitors ?? []).find((c: Json) => c.homeAway === 'home')
+      const away = (comp?.competitors ?? []).find((c: Json) => c.homeAway === 'away')
+      const homeName = home?.team?.displayName
+      const awayName = away?.team?.displayName
+      if (!homeName || !awayName || !ev.date) continue
+      const delta = Math.abs(new Date(ev.date).getTime() - target)
+      if (delta > toleranceMs) continue
+      if (!best || delta < best.delta) {
+        best = {
+          delta,
+          fx: { eventId: String(ev.id), homeTeam: homeName, awayTeam: awayName, kickoff: ev.date },
+        }
+      }
+    }
+  }
+  return best?.fx ?? null
 }
 
 /** Feuille de match complète : compteurs par joueur + qualification des buts. */

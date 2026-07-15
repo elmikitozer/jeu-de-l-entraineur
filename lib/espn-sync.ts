@@ -28,10 +28,82 @@ import { bestNameMatch } from './fifa-motm'
 import { getCountryCode } from './flags'
 import { isPlaceholderApiId, KNOCKOUT_STAGES } from './knockout-resolver'
 import { applyAbsentTeamResultBonus } from './team-result-bonus'
-import { findEspnEventId, fetchEspnMatch, type EspnPlayerStat } from './espn'
+import { findEspnEventId, fetchEspnMatch, findEspnFixtureByKickoff, type EspnPlayerStat } from './espn'
+import { loadNationalityByCode, canonicalTeamName } from './team-names'
 import type { Position, PlayerStats, PointsBreakdown } from './types'
 
 type SB = ReturnType<typeof createServiceClient>
+
+export interface EspnCalendarResult {
+  resolved: number
+  errors: string[]
+}
+
+/**
+ * Remplit l'affiche des slots de phase finale encore "TBD".
+ *
+ * Le flux FIFA s'en tient à "Winner match 101 v Winner match 102" tant que le
+ * match n'est pas joué, et l'API-Football est inaccessible : le calendrier
+ * resterait donc vide jusqu'au coup de sifflet final. ESPN, lui, publie
+ * l'affiche dès les qualifiés connus. Clé d'appariement : l'horaire de coup
+ * d'envoi, seule donnée disponible quand on n'a pas encore de noms d'équipes.
+ *
+ * N'écrit que les noms : le score et les stats restent à la charge du sync une
+ * fois le match joué.
+ */
+export async function resolveKnockoutCalendarFromEspn(
+  supabase: SB,
+  options: EspnSyncOptions = {},
+): Promise<EspnCalendarResult> {
+  const apply = options.apply ?? true
+  const log = options.onLog ?? (() => {})
+  const result: EspnCalendarResult = { resolved: 0, errors: [] }
+
+  const { data: rows, error } = await supabase
+    .from('matches')
+    .select('id, api_match_id, home_team, date, stage')
+    .in('stage', KNOCKOUT_STAGES as unknown as string[])
+    .eq('home_team', 'TBD')
+    .order('date', { ascending: true })
+  if (error) {
+    result.errors.push(`matches: ${error.message}`)
+    return result
+  }
+  const pending = (rows ?? []).filter((r) => isPlaceholderApiId(r.api_match_id as number | null))
+  if (pending.length === 0) return result
+
+  const byCode = await loadNationalityByCode(supabase)
+
+  for (const m of pending) {
+    let fx
+    try {
+      fx = await findEspnFixtureByKickoff(m.date as string)
+    } catch (err) {
+      result.errors.push(`espn fixture ${m.id}: ${err instanceof Error ? err.message : String(err)}`)
+      continue
+    }
+    if (!fx) continue // affiche pas encore publiée
+
+    const home = canonicalTeamName(fx.homeTeam, byCode)
+    const away = canonicalTeamName(fx.awayTeam, byCode)
+    if (!home || !away) {
+      result.errors.push(`${m.stage} : équipe non résolue (${fx.homeTeam} / ${fx.awayTeam})`)
+      continue
+    }
+
+    log(`  📅 ${m.stage} : ${home} v ${away} (ESPN ${fx.eventId})`)
+    result.resolved++
+    if (!apply) continue
+
+    const { error: upErr } = await supabase
+      .from('matches')
+      .update({ home_team: home, away_team: away })
+      .eq('id', m.id as string)
+    if (upErr) result.errors.push(`update ${m.id}: ${upErr.message}`)
+  }
+
+  return result
+}
 
 export interface EspnSyncResult {
   matchesUpdated: number

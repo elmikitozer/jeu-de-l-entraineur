@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { bestNameMatch, cleanFifaLine, matchEntryToFixture, normalizeName, type FifaMotmEntry } from './fifa-motm'
+import { bestNameMatch, cleanFifaLine, fifaMatchNumber, matchEntryToFixture, normalizeName, type FifaMotmEntry } from './fifa-motm'
+
+describe('fifaMatchNumber', () => {
+  it('extrait le numéro de match officiel des lignes de phase finale', () => {
+    expect(fifaMatchNumber('Match 101 – Spain 2-1 Argentina - Lamine Yamal (Spain)')).toBe(101)
+    expect(fifaMatchNumber('Match 74 – Germany 1-1 Paraguay (PSO 3-4) - Orlando Gill (Paraguay)')).toBe(74)
+  })
+
+  it('retourne null en phase de groupes (pas de numéro dans le flux)', () => {
+    expect(fifaMatchNumber('Mexico 2-0 South Africa - Julian Quinones (Mexico)')).toBeNull()
+  })
+})
 
 describe('cleanFifaLine (format phase finale)', () => {
   it('retire le préfixe "Match N –"', () => {
@@ -58,8 +69,8 @@ describe('bestNameMatch', () => {
 
 describe('matchEntryToFixture', () => {
   const entries: FifaMotmEntry[] = [
-    { home: 'Korea Republic', away: 'Czechia', homeScore: 2, awayScore: 1, player: 'Hwang Inbeom', nationality: 'Korea Republic' },
-    { home: 'Mexico', away: 'South Africa', homeScore: 2, awayScore: 0, player: 'Julian Quinones', nationality: 'Mexico' },
+    { matchNumber: null, home: 'Korea Republic', away: 'Czechia', homeScore: 2, awayScore: 1, player: 'Hwang Inbeom', nationality: 'Korea Republic' },
+    { matchNumber: null, home: 'Mexico', away: 'South Africa', homeScore: 2, awayScore: 0, player: 'Julian Quinones', nationality: 'Mexico' },
   ]
 
   it('résout les alias de nom via getCountryCode (South Korea↔Korea Republic, Czech Republic↔Czechia)', () => {

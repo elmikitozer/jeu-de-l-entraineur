@@ -27,6 +27,7 @@ import { parseMatchDateUTC } from '@/lib/datetime'
 import { generateDailyRecapIfNeeded } from '@/lib/recap'
 import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
 import { getSyncMode } from '@/lib/sync-mode'
+import { applyFifaFallback } from '@/lib/fifa-fallback'
 import {
   resolveKnockoutFixtures,
   needsKnockoutResolution,
@@ -131,8 +132,21 @@ export async function GET(request: NextRequest) {
           const lastTry = m.last_verified_at ? new Date(m.last_verified_at as string).getTime() : 0
           return near && now.getTime() - lastTry >= RESOLVER_RETRY_MS
         })
+  let fifaFallback = { matchesUpdated: 0, participantsRecalculated: 0, notPublished: 0, errors: [] as string[] }
   if (resolverDue) {
+    // 1. L'API d'abord : elle seule fournit les stats complètes. Sans plan payant
+    //    elle échoue (saison 2026 inaccessible) et ne remappe rien.
     knockout = await resolveKnockoutFixtures(supabase)
+
+    // 2. Filet gratuit : pour les slots que l'API n'a pas pu résoudre, le flux
+    //    FIFA donne équipes + score final → bonus de résultat + MOTM. Ne touche
+    //    que les lignes encore en placeholder, donc ne peut pas écraser l'API.
+    try {
+      fifaFallback = await applyFifaFallback(supabase)
+    } catch (err) {
+      fifaFallback.errors.push(`fifaFallback: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
     // Horodater les slots restés non résolus : sert de throttle au cycle suivant
     // (le resolver, lui, remet last_verified_at à null sur ce qu'il remappe).
     const stillPending = pendingKnockout
@@ -222,7 +236,7 @@ export async function GET(request: NextRequest) {
   if (toSyncIds.length === 0) {
     const motmUpdated = await tryReconcileMotm(supabase)
     const recapGenerated = await tryRecap(supabase)
-    return NextResponse.json({ mode: syncMode, synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, errors: knockout.errors })
+    return NextResponse.json({ mode: syncMode, synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, fifaFallback, errors: [...knockout.errors, ...fifaFallback.errors] })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -257,6 +271,7 @@ export async function GET(request: NextRequest) {
     motmUpdated,
     recapGenerated,
     knockout,
+    fifaFallback,
     errors,
     timestamp: now.toISOString(),
   })

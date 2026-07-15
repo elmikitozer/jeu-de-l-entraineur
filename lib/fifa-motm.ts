@@ -31,6 +31,11 @@ const FIFA_API = 'https://cxm-api.fifa.com/fifaplusweb/api'
 const ARTICLE_SLUG = 'michelob-ultra-superior-player-of-match-winner'
 
 export interface FifaMotmEntry {
+  /** Numéro de match officiel FIFA (1→104), présent sur les lignes de phase
+   *  finale ("Match 101 – …"), absent en phase de groupes. Clé de jointure avec
+   *  nos lignes de phase finale : le seed a justement importé ces matchs avec
+   *  api_match_id = numéro FIFA (73→104). */
+  matchNumber: number | null
   home: string
   away: string
   homeScore: number
@@ -75,9 +80,18 @@ const TAIL = /^(.+?)\s*[-–]\s*(.+?)\s*\(([^()]+)\)\s*$/
  * Le score réglementaire (hors TAB) reste intact pour le matching, la nationalité
  * finale "(Canada)" (sans chiffre) est préservée. No-op sur les lignes de groupe.
  */
+/** Préfixe "Match N –" des lignes de phase finale (capture le numéro FIFA). */
+const MATCH_NUMBER = /^Match\s+(\d+)\s*[–-]\s*/i
+
+/** Numéro de match officiel FIFA d'une ligne, ou null (phase de groupes). */
+export function fifaMatchNumber(line: string): number | null {
+  const m = MATCH_NUMBER.exec(line.trim())
+  return m ? Number(m[1]) : null
+}
+
 export function cleanFifaLine(line: string): string {
   return line
-    .replace(/^Match\s+\d+\s*[–-]\s*/i, '')
+    .replace(MATCH_NUMBER, '')
     .replace(/\([^()]*\d[^()]*\)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -96,12 +110,14 @@ function parseRichText(rt: RichNode): FifaMotmEntry[] {
   const entries: FifaMotmEntry[] = []
   for (const p of paras) {
     for (const rawLine of p.split('\n')) {
+      const matchNumber = fifaMatchNumber(rawLine)
       const line = cleanFifaLine(rawLine)
       const m = LINE.exec(line)
       if (!m) continue
       const t = TAIL.exec(m[4])
       if (!t) continue // "Team v Team – Group X" (pas encore joué) → ignoré
       entries.push({
+        matchNumber,
         home: m[1].trim(),
         away: t[1].trim(),
         homeScore: Number(m[2]),

@@ -28,6 +28,7 @@ import { generateDailyRecapIfNeeded } from '@/lib/recap'
 import { reconcileOfficialMotm } from '@/lib/motm-reconcile'
 import { getSyncMode } from '@/lib/sync-mode'
 import { applyFifaFallback } from '@/lib/fifa-fallback'
+import { syncKnockoutFromEspn } from '@/lib/espn-sync'
 import {
   resolveKnockoutFixtures,
   needsKnockoutResolution,
@@ -133,18 +134,28 @@ export async function GET(request: NextRequest) {
           return near && now.getTime() - lastTry >= RESOLVER_RETRY_MS
         })
   let fifaFallback = { matchesUpdated: 0, participantsRecalculated: 0, notPublished: 0, errors: [] as string[] }
+  let espn = { matchesUpdated: 0, playersUpdated: 0, unmatched: [] as string[], notFound: 0, participantsRecalculated: 0, errors: [] as string[] }
   if (resolverDue) {
     // 1. L'API d'abord : elle seule fournit les stats complètes. Sans plan payant
     //    elle échoue (saison 2026 inaccessible) et ne remappe rien.
     knockout = await resolveKnockoutFixtures(supabase)
 
-    // 2. Filet gratuit : pour les slots que l'API n'a pas pu résoudre, le flux
-    //    FIFA donne équipes + score final → bonus de résultat + MOTM. Ne touche
-    //    que les lignes encore en placeholder, donc ne peut pas écraser l'API.
+    // 2. Filet gratuit, en deux temps, sur les seules lignes encore en
+    //    placeholder (donc jamais sur des données API) :
+    //    a) FIFA donne les équipes et le score → identifie le match et crédite
+    //       le bonus de résultat, même si ESPN ne le connaît pas encore.
     try {
       fifaFallback = await applyFifaFallback(supabase)
     } catch (err) {
       fifaFallback.errors.push(`fifaFallback: ${err instanceof Error ? err.message : String(err)}`)
+    }
+    //    b) ESPN complète avec la feuille de match (buteurs, passeurs, cartons,
+    //       penalties, cleansheets) — ce que FIFA ne publie pas. Nécessite les
+    //       vraies équipes, donc tourne APRÈS le fallback FIFA.
+    try {
+      espn = await syncKnockoutFromEspn(supabase)
+    } catch (err) {
+      espn.errors.push(`espnSync: ${err instanceof Error ? err.message : String(err)}`)
     }
 
     // Horodater les slots restés non résolus : sert de throttle au cycle suivant
@@ -236,7 +247,7 @@ export async function GET(request: NextRequest) {
   if (toSyncIds.length === 0) {
     const motmUpdated = await tryReconcileMotm(supabase)
     const recapGenerated = await tryRecap(supabase)
-    return NextResponse.json({ mode: syncMode, synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, fifaFallback, errors: [...knockout.errors, ...fifaFallback.errors] })
+    return NextResponse.json({ mode: syncMode, synced: 0, matchesProcessed: 0, motmUpdated, recapGenerated, knockout, fifaFallback, espn, errors: [...knockout.errors, ...fifaFallback.errors, ...espn.errors] })
   }
 
   // ── Sync de chaque match ──────────────────────────────────────────────────
@@ -272,6 +283,7 @@ export async function GET(request: NextRequest) {
     recapGenerated,
     knockout,
     fifaFallback,
+    espn,
     errors,
     timestamp: now.toISOString(),
   })
